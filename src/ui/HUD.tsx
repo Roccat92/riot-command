@@ -216,7 +216,7 @@ function SquadPanel() {
         <div className="empty">Chưa chọn squad. Click vào một squad, kéo chuột để chọn nhiều squad, hoặc bấm tab phía trên.</div>
       ) : (
         <>
-          <div className="portraits">
+          <div className={'portraits' + (total > 8 ? ' small' : '')}>
             {sel.map((s) => s.units.map((u, i) => <Portrait key={`${s.id}-${i}`} hp={u.hp} down={u.down} color={hex(SQUAD_COLORS[s.id])} />))}
           </div>
           <div className="bars">

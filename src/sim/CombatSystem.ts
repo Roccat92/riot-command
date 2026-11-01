@@ -82,7 +82,7 @@ function strike(w: World, a: Unit, t: Unit, kind: 'baton' | 'push'): void {
     st.batons++;
     m.force = clamp(m.force + 1.3, 0, 100);
     applyDamage(w, t, 12 * stamF * moraleF);
-    t.morale = clamp(t.morale - 9, 0, 100);
+    t.morale = clamp(t.morale - 6, 0, 100);
     t.kx += (dx / d) * 1.5;
     t.kz += (dz / d) * 1.5;
   } else {
@@ -90,7 +90,7 @@ function strike(w: World, a: Unit, t: Unit, kind: 'baton' | 'push'): void {
     st.pushes++;
     m.force = clamp(m.force + 0.3, 0, 100);
     applyDamage(w, t, 2.5 * stamF);
-    t.morale = clamp(t.morale - 3, 0, 100);
+    t.morale = clamp(t.morale - 2, 0, 100);
     t.kx += (dx / d) * 4.2;
     t.kz += (dz / d) * 4.2;
     t.atkCd = Math.max(t.atkCd, 0.7);
@@ -107,7 +107,7 @@ function strike(w: World, a: Unit, t: Unit, kind: 'baton' | 'push'): void {
     const od = Math.hypot(o.x - t.x, o.z - t.z);
     if (o.team === RIOTER && od < 8 && kind === 'baton') o.agitation = clamp(o.agitation + 0.2, 0, 1);
     // thiet hai phu: dan thuong dung gan diem tac dong
-    if (o.team === CIVILIAN && od < 1.3) {
+    if (o.team === CIVILIAN && od < 1.8) {
       applyDamage(w, o, kind === 'baton' ? 5 : 2);
       st.collateral++;
       m.force = clamp(m.force + 1, 0, 100);
@@ -129,7 +129,7 @@ function rioterHit(w: World, r: Unit, p: Unit): void {
   if (sq.order === 'HOLD') f *= 0.8;
   if (sq.order === 'DEESCALATE') f *= 0.85;
   const coh = 1 - 0.3 * (p.cohesion / 100);
-  applyDamage(w, p, 8 * f * coh);
+  applyDamage(w, p, 10 * f * coh);
   p.morale = clamp(p.morale - 2.5, 0, 100);
   p.provoked = 3;
   p.anim = 'HIT';
@@ -179,12 +179,12 @@ export function updateCombat(w: World, dt: number): void {
       if (p && isAlive(p) && p.team === POLICE && Math.hypot(p.x - u.x, p.z - u.z) < 1.5 && u.atkCd <= 0) rioterHit(w, u, p);
       // thiet hai phu: dan thuong dung gan tran giao tranh
       if (p) {
-        hash.query(u.x, u.z, 1.8, near);
+        hash.query(u.x, u.z, 2.6, near);
         for (const j of near) {
           const c = units[j];
-          if (c.team === CIVILIAN && isAlive(c) && Math.hypot(c.x - u.x, c.z - u.z) < 1.8) {
+          if (c.team === CIVILIAN && isAlive(c) && Math.hypot(c.x - u.x, c.z - u.z) < 2.6) {
             const before = c.health;
-            applyDamage(w, c, 2.2 * dt);
+            applyDamage(w, c, 4 * dt);
             if (before > 0 && Math.floor(before / 10) !== Math.floor(c.health / 10)) w.metrics.stats.collateral++;
           }
         }

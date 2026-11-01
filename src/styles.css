@@ -91,3 +91,6 @@ kbd { background: #1a2638; border: 1px solid #33465f; border-radius: 4px; paddin
 .results table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; }
 .results td { padding: 5px 4px; border-bottom: 1px solid #1d2b40; color: #c5d3e6; }
 .results td:last-child { text-align: right; font-weight: 600; color: #fff; font-variant-numeric: tabular-nums; }
+.portraits.small .portrait { width: 28px; height: 32px; }
+.portraits.small .portrait svg { width: 22px; height: 22px; }
+.portraits.small { gap: 4px; }

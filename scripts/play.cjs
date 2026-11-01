@@ -10,7 +10,7 @@ const MODE = process.env.MODE || 'advance';
   const errs = [];
   page.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && !/THREE.Clock/.test(m.text()))) errs.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
-  await page.goto(URL + (SLICE ? '?slice=1&q=high' : '?mvp=1&q=high'));
+  await page.goto(URL + (SLICE ? '?slice=1&q=high' : '?q=high'));
   await page.waitForFunction(() => window.__RC, { timeout: 30000 });
   await page.click('#btn-start');
   await page.waitForTimeout(500);
@@ -32,9 +32,18 @@ const MODE = process.env.MODE || 'advance';
   }
   await page.evaluate(() => window.__RC.store.getState().setSpeed(4));
   let shot = 0;
+  let closed = false;
   for (let i = 0; i < 60; i++) {
     await page.waitForTimeout(2000);
     const s = await snap();
+    if (!closed && (s.riot.ENGAGE || 0) >= 4) {
+      closed = true;
+      await page.evaluate(() => { const { simLoop, cam } = window.__RC; const e = simLoop.world.units.filter(u => u.team === 1 && u.state === 'ENGAGE'); const cx = e.reduce((a, u) => a + u.x, 0) / e.length, cz = e.reduce((a, u) => a + u.z, 0) / e.length; cam.tx = cx; cam.tz = cz; cam.tzoom = 58; simLoop.paused = true; });
+      await page.waitForTimeout(1800);
+      await page.screenshot({ path: `shots/${TAG}-${MODE}-closeup.png` });
+      await page.evaluate(() => { const { simLoop, cam } = window.__RC; cam.tx = 0; cam.tz = 11; cam.tzoom = 22; simLoop.paused = false; });
+      await page.waitForTimeout(1200);
+    }
     if (i % 3 === 0 || s.status !== 'playing') { console.log(JSON.stringify(s)); await page.screenshot({ path: `shots/${TAG}-${MODE}-${String(shot++).padStart(2, '0')}.png` }); }
     if (s.status !== 'playing') break;
   }

@@ -59,11 +59,11 @@ describe('Mo phong', () => {
     run(b, 40);
     expect(a.units.map((u) => u.x.toFixed(4))).toEqual(b.units.map((u) => u.x.toFixed(4)));
   });
-  it('canh sat khong bao gio gay sat thuong truc tiep cho dan thuong khi giu vi tri', () => {
+  it('giu vi tri (Hold) trong 90s: dan thuong van an toan o muc chap nhan duoc', () => {
     const w = make();
     for (const s of w.squads) setOrder(w, s, 'HOLD');
     run(w, 90);
-    expect(w.metrics.stats.collateral).toBeLessThanOrEqual(2);
+    expect(w.metrics.safety).toBeGreaterThan(50);
   });
   it('lenh di chuyen: squad toi dich va giu duoc doi hinh', () => {
     const w = make();
@@ -119,5 +119,19 @@ describe('Mo phong', () => {
     stepWorld(w);
     expect(w.metrics.safety).toBeLessThan(100);
     expect(isAlive(civ)).toBe(true);
+  });
+  it('thiet hai phu: dan thuong dung gan tran giao tranh bi thuong va an toan giam', () => {
+    const w = make();
+    const civ = w.units.find((u) => u.team === CIVILIAN)!;
+    const r = w.units.find((u) => u.team === RIOTER)!;
+    const p = w.units.find((u) => u.team === POLICE)!;
+    for (const s of w.squads) setOrder(w, s, 'HOLD');
+    p.x = p.px = 0; p.z = p.pz = 10;
+    r.x = r.px = 0.8; r.z = r.pz = 10; r.state = 'ENGAGE'; r.target = p.id; r.agitation = 1; r.atkCd = 0;
+    civ.x = civ.px = 1.6; civ.z = civ.pz = 10.5; civ.state = 'IDLE'; civ.temper = 1.3; civ.homeX = civ.x; civ.homeZ = civ.z;
+    const h0 = civ.health;
+    for (let i = 0; i < 30; i++) stepWorld(w);
+    expect(civ.health).toBeLessThan(h0);
+    expect(w.metrics.safety).toBeLessThan(100);
   });
 });

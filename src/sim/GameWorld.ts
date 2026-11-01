@@ -147,8 +147,8 @@ function newUnit(id: number, team: Team, group: number, x: number, z: number, rn
     heading: 0,
     pheading: 0,
     face: 0,
-    health: team === POLICE ? 100 : team === RIOTER ? 60 : 50,
-    maxHealth: team === POLICE ? 100 : team === RIOTER ? 60 : 50,
+    health: team === POLICE ? 100 : team === RIOTER ? 70 : 50,
+    maxHealth: team === POLICE ? 100 : team === RIOTER ? 70 : 50,
     stamina: 100,
     morale: team === POLICE ? 85 : team === RIOTER ? 70 + rng() * 12 : 80,
     cohesion: 80,
@@ -210,9 +210,9 @@ function freeSpot(map: MapData, x: number, z: number, rng: () => number, spread:
 }
 
 const SQUAD_SPAWN: Vec2[] = [
-  { x: -3.5, z: 16.5 },
-  { x: 3.5, z: 16.5 },
-  { x: 0, z: 19 },
+  { x: -10.5, z: 16.5 },
+  { x: 0, z: 16.5 },
+  { x: 10.5, z: 16.5 },
 ];
 const SQUAD_SPAWN_SLICE: Vec2[] = [
   { x: -6, z: 16.5 },

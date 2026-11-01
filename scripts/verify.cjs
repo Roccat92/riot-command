@@ -10,7 +10,7 @@ const log = (...a) => console.log(...a);
   const errs = [];
   page.on('console', (m) => { if (m.type() === 'error' || (m.type() === 'warning' && !/THREE.Clock/.test(m.text()))) errs.push(m.type() + ': ' + m.text()); });
   page.on('pageerror', (e) => errs.push('pageerror: ' + e.message));
-  await page.goto(URL + (SLICE ? '?slice=1&q=high' : '?mvp=1&q=high'));
+  await page.goto(URL + (SLICE ? '?slice=1&q=high' : '?q=high'));
   await page.waitForFunction(() => window.__RC, { timeout: 30000 });
   await page.waitForTimeout(800);
   await page.screenshot({ path: `shots/${TAG}-01-briefing.png` });
@@ -86,7 +86,7 @@ const log = (...a) => console.log(...a);
   log('camera', camBefore.x.toFixed(1), '->', camAfter.x.toFixed(1), 'yaw', camBefore.yaw.toFixed(2), '->', camAfter.yaw.toFixed(2), 'zoom', camBefore.zoom.toFixed(1), '->', camAfter.zoom.toFixed(1));
   await page.screenshot({ path: `shots/${TAG}-08-camera-rot.png` });
   // reset camera
-  await page.evaluate(() => { const c = window.__RC.cam; c.tx = 0; c.tz = 8; c.tyaw = 0; c.tzoom = 23; });
+  await page.evaluate(() => { const c = window.__RC.cam; c.tx = 0; c.tz = 11; c.tyaw = 0; c.tzoom = 22; });
   await page.waitForTimeout(900);
   // 6. space pause
   await page.keyboard.press('Space'); await page.waitForTimeout(200);

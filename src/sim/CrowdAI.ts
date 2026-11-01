@@ -73,13 +73,14 @@ export interface CivilianInput {
   morale: number; // binh tinh
   stateTime: number;
   distToExit: number;
+  bravery?: number; // 0..1: nguoi tho o/to mo, chi bo chay khi nguy hiem cao
 }
 
 export function civilianTransition(i: CivilianInput): AIState {
   if (i.health <= 0) return 'DOWN';
   switch (i.state) {
     case 'IDLE':
-      return i.danger > 0.25 || i.morale < 70 ? 'RETREAT' : 'IDLE';
+      return i.danger > 0.25 + 0.45 * (i.bravery ?? 0) || i.morale < 70 - 25 * (i.bravery ?? 0) ? 'RETREAT' : 'IDLE';
     case 'RETREAT':
       if (i.danger > 0.65 || i.morale < 40) return 'PANIC';
       if (i.distToExit < 2.5 && i.danger > 0.3) return 'DISPERSE';
@@ -220,7 +221,8 @@ function updateRioter(w: World, u: Unit, dt: number, force: number, squads: Worl
   // tinh than
   let dm = 0;
   if (np > 0) {
-    dm -= (advancing ? 1.1 : 0.4) * (Math.min(np, 6) / 3);
+    dm -= (advancing ? 0.9 : 0.35) * (Math.min(np, 6) / 3);
+    if (nr >= 5 && np <= 4) dm += 0.9; // dong nguoi tao can dam
     if (nr / (np + 0.5) > 1.6) dm += 0.8;
   } else if (!advancing && u.morale < 75) dm += 0.9;
   dm += 0.12 * (g.morale - u.morale);
@@ -290,6 +292,7 @@ function updateCivilian(w: World, u: Unit, dt: number): void {
     morale: u.morale,
     stateTime: u.stateTime,
     distToExit: u.state === 'IDLE' ? 99 : distToExit(w, u),
+    bravery: clamp((u.temper - 0.75) / 0.55, 0, 1),
   });
   if (next !== u.state) {
     const urgent = next === 'PANIC' || next === 'DISPERSE' || next === 'DOWN';

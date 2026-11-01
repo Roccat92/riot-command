@@ -23,9 +23,9 @@ export function stepWorld(w: World, dt = STEP): void {
 }
 
 export function configFromUrl(): WorldConfig {
-  // Giai doan lat cat doc: mac dinh 2 squad + 1 nhom; them ?mvp=1 de chay quy mo MVP
-  if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('mvp') === '1') return MVP_CONFIG;
-  return SLICE_CONFIG;
+  // Mac dinh: quy mo MVP (3 squad, 3 nhom, 10 dan thuong). ?slice=1 chay ban lat cat nho.
+  if (typeof location !== 'undefined' && new URLSearchParams(location.search).get('slice') === '1') return SLICE_CONFIG;
+  return MVP_CONFIG;
 }
 
 export class SimulationLoop {

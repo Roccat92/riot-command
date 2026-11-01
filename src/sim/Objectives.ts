@@ -86,7 +86,7 @@ export function updateObjectives(w: World, dt: number): void {
   } else if (m.lowStabilityTimer > 5) {
     outcome = 'lost';
     reason = 'Tình hình vượt ngưỡng mất kiểm soát';
-  } else if (m.clearTimer >= 3 && w.time > 5) {
+  } else if (m.clearTimer >= 8 && w.time > 5) {
     if (m.safety >= w.safetyThreshold) {
       outcome = 'won';
       reason = 'Các nhóm bạo động đã giải tán hoặc rút lui, quảng trường ổn định';
