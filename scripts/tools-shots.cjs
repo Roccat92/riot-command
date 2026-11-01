@@ -53,12 +53,13 @@ const QS = process.env.QS || '?q=high';
   await shot('04-tear-gas');
   await ev(() => window.__RC.store.getState().togglePause());
   // --- luu dan choang ---
+  // luu dan choang: chay tay tung buoc de chup ngay luc no
   await ev(() => { window.__RC.store.getState().fireTool('flash', 3, -7); });
-  await page.waitForTimeout(950);
-  await ev(() => window.__RC.store.getState().togglePause());
+  await ev(() => { const { simLoop, stepWorld } = window.__RC; const w = simLoop.world; let n = 0; while (!w.fx.some((e) => e.kind === 'flash') && n++ < 90) stepWorld(w); for (let i = 0; i < 4; i++) stepWorld(w); });
   await focus(3, -6, 24);
-  await shot('05-flashbang');
-  await ev(() => window.__RC.store.getState().togglePause());
+  await page.waitForTimeout(150);
+  await page.screenshot({ path: `shots/${PRE}-05-flashbang.png` });
+  console.log('shot 05-flashbang');
   // --- LRAD ---
   await ev(() => { window.__RC.store.getState().fireTool('lrad', 0, -14); });
   await page.waitForTimeout(1800);

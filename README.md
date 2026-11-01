@@ -102,7 +102,7 @@ Thêm công cụ khiến ván dễ hơn nên độ khó cơ bản được tăng
 
 Nhận xét trung thực:
 
-- Công cụ mới **có giá trị rõ rệt**: cùng một chiến thuật, tỉ lệ thắng nhảy từ 20-33% lên 90-100% và cảnh sát ngã từ khoảng 10 xuống 1-2 người. Ba thứ đều đóng góp (khi thử tắt từng thứ, ván vẫn thắng, nhưng thắng muộn hơn và hạng thấp hơn).
+- Công cụ mới **có giá trị rõ rệt**: cùng một chiến thuật, tỉ lệ thắng nhảy từ 20-33% lên 90-100% và cảnh sát ngã từ khoảng 10 xuống 1-2 người. Các công cụ bù cho nhau: khi thử tắt riêng từng thứ (khi chỉnh cân bằng, bản thử trước) bot vẫn thắng, chỉ khi tắt gần hết thì ván thắng muộn hơn và hạng thấp hơn.
 - Bot dùng công cụ **gần như hoàn hảo** (nhắm vào chỗ đông nhất, không bao giờ quên LRAD), nên 100% là cận trên. Người chơi thật phải tự nhắm, quản lý số quả có hạn, bảo vệ xe (xe trung bình nhận khoảng 270-340 sát thương trên 330 độ bền, tức thường bị phá hủy hoặc gần hỏng trước cuối ván) và vẫn phải dùng đội hình, nên khó hơn nhiều. Chưa có người chơi thật đo lại.
 - Ván không tầm thường vì **chỉ phòng thủ vẫn thua 100%** (cả khi có công cụ): phải chủ động tiến lên và dùng công cụ để giải tán đám đông, vì số người (73) và tốc độ ném đủ để hạ lực lượng cảnh sát nếu cứ đứng yên.
 
