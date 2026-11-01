@@ -53,8 +53,12 @@ export function exitGoal(w: World, idx: number): Vec2 {
 export function avoidFires(w: World, u: Unit): boolean {
   for (const f of w.fires) {
     if (!f.active) continue;
-    const dx = u.x - f.x;
-    const dz = u.z - f.z;
+    let dx = u.x - f.x;
+    let dz = u.z - f.z;
+    if (Math.abs(dx) + Math.abs(dz) < 0.05) {
+      dx = Math.cos(u.id * 2.4);
+      dz = Math.sin(u.id * 2.4);
+    }
     const d = Math.hypot(dx, dz) || 1e-3;
     if (d < f.r + 0.15) {
       // dang trong lua: chay ra phia ngoai gan nhat

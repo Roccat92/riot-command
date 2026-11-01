@@ -14,14 +14,15 @@ function run(w: ReturnType<typeof make>, seconds: number) {
 }
 
 describe('GameWorld', () => {
-  it('MVP: 3 squad x 8 canh sat, 3 nhom x 10 bao dong, 10 dan thuong', () => {
+  it('MVP: 3 squad x 8 canh sat, 5 nhom (65) bao dong, 10 dan thuong', () => {
     const w = make();
     expect(w.squads).toHaveLength(3);
     expect(w.squads.every((s) => s.unitIds.length === 8)).toBe(true);
     expect(w.units.filter((u) => u.team === POLICE)).toHaveLength(24);
-    expect(w.units.filter((u) => u.team === RIOTER)).toHaveLength(30);
+    expect(w.units.filter((u) => u.team === RIOTER)).toHaveLength(65);
     expect(w.units.filter((u) => u.team === CIVILIAN)).toHaveLength(10);
-    expect(w.groups.every((g) => g.unitIds.length === 10)).toBe(true);
+    expect(w.groups).toHaveLength(5);
+    expect(w.groups.every((g) => g.unitIds.length === 13)).toBe(true);
   });
   it('lat cat: 2 squad, 1 nhom', () => {
     const w = make(SLICE_CONFIG);

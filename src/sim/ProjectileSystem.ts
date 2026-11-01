@@ -108,7 +108,7 @@ function planDodges(w: World, p: Projectile): void {
     let nx = d > 0.05 ? dx / d : Math.cos(u.id);
     let nz = d > 0.05 ? dz / d : Math.sin(u.id);
     const dist = (molotov ? FIRE_R + 1.1 : 1.9) + w.rng() * 0.4;
-    u.dodgeT = 0.9;
+    u.dodgeT = Math.max(0.9, p.dur - p.t + 0.35); // giu cho ne cho den khi vat cham dat
     u.dodgeX = p.tx + nx * dist;
     u.dodgeZ = p.tz + nz * dist;
     u.stamina = Math.max(0, u.stamina - DODGE_STAMINA);
