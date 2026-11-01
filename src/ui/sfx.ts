@@ -78,6 +78,28 @@ export function playSfx(type: string): void {
     case 'dodge':
       tone('sine', 300, 700, 0.1, 0.04);
       break;
+    case 'water':
+      noise(0.25, 0.09, 1200);
+      break;
+    case 'gas':
+      noise(0.5, 0.1, 600);
+      tone('sine', 140, 60, 0.3, 0.05);
+      break;
+    case 'flash':
+      noise(0.35, 0.22, 2000);
+      tone('square', 1800, 300, 0.25, 0.07);
+      break;
+    case 'lrad':
+      tone('sawtooth', 880, 960, 0.6, 0.06);
+      tone('square', 1320, 1280, 0.6, 0.03);
+      break;
+    case 'truckhit':
+      tone('square', 160, 70, 0.18, 0.09);
+      noise(0.1, 0.1, 400);
+      break;
+    case 'knock':
+      tone('sine', 200, 70, 0.12, 0.06);
+      break;
     case 'wave':
       tone('sawtooth', 220, 330, 0.5, 0.07);
       break;

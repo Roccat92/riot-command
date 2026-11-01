@@ -7,6 +7,8 @@ import { EffectsRenderer } from './render/EffectsRenderer';
 import { InputLayer } from './render/InputLayer';
 import { Overlays } from './render/Overlays';
 import { SimDriver } from './render/SimDriver';
+import { ToolsRenderer } from './render/ToolsRenderer';
+import { QUALITY } from './render/quality';
 import { UnitRenderer } from './render/UnitRenderer';
 import { WorldScene } from './render/WorldScene';
 import { HUD } from './ui/HUD';
@@ -15,13 +17,13 @@ const FIXED_HIGH = typeof location !== 'undefined' && new URLSearchParams(locati
 
 export default function App() {
   const [tier, setTier] = useState(0); // 0 = cao, 1 = ha dpr, 2 = tat bong do
-  const dpr = tier === 0 ? 1.75 : 1;
+  const dpr = tier === 0 ? QUALITY.dpr : 1;
   return (
     <div className="app">
       <Canvas
         orthographic
         flat
-        shadows={tier < 2 ? { type: PCFShadowMap } : false}
+        shadows={tier < 2 && QUALITY.shadows ? { type: PCFShadowMap } : false}
         dpr={dpr}
         camera={{ position: [0, 85, 85], zoom: 24, near: 0.1, far: 600 }}
         gl={{ antialias: true, powerPreference: 'high-performance', preserveDrawingBuffer: true }}
@@ -30,6 +32,7 @@ export default function App() {
         <WorldScene />
         <UnitRenderer />
         <EffectsRenderer />
+        <ToolsRenderer />
         <Overlays />
         <CameraController />
         <InputLayer />

@@ -7,6 +7,7 @@ import {
   CircleGeometry,
   Color,
   ConeGeometry,
+  CylinderGeometry,
   DoubleSide,
   Euler,
   InstancedMesh,
@@ -30,7 +31,7 @@ const MAX_BURN = 64;
 const ZERO = new Matrix4().makeScale(0, 0, 0);
 
 const KIND_COL = [0xb8b2a6, 0x57d98a, 0xff8a1f];
-const FX_COL: Record<string, number> = { block: 0xbfe3ff, hit: 0xff5a3c, glass: 0x7bffb0, burst: 0xffa030, dodge: 0x6fe9ff };
+const FX_COL: Record<string, number> = { block: 0xbfe3ff, hit: 0xff5a3c, glass: 0x7bffb0, burst: 0xffa030, dodge: 0x6fe9ff, splash: 0xa8dcff, flash: 0xffffff, gaspop: 0xd9e58a };
 const FX_KIND = ['block', 'hit', 'glass', 'burst', 'dodge'];
 
 const mA = new Matrix4();
@@ -62,6 +63,8 @@ export function EffectsRenderer() {
     const stone = mk(new OctahedronGeometry(0.2, 0), solid, MAX_P);
     const bottle = mk(new BoxGeometry(0.14, 0.4, 0.14), solid, MAX_P);
     const molo = mk(new BoxGeometry(0.2, 0.34, 0.2), solid, MAX_P);
+    const canister = mk(new CylinderGeometry(0.15, 0.15, 0.55, 6), solid, MAX_P);
+    const flashB = mk(new SphereGeometry(0.2, 6, 5), solid, MAX_P);
     const warn = mk(new RingGeometry(0.86, 1.0, 36).rotateX(-Math.PI / 2), ringMat, MAX_P);
     const warnFill = mk(new CircleGeometry(1, 28).rotateX(-Math.PI / 2), glowMat, MAX_P);
     const glow = mk(new CircleGeometry(1, 28).rotateX(-Math.PI / 2), glowMat, MAX_FIRE);
@@ -77,6 +80,10 @@ export function EffectsRenderer() {
       bottle.setColorAt(i, c);
       c.set(KIND_COL[2]);
       molo.setColorAt(i, c);
+      c.set(0x6f8a58);
+      canister.setColorAt(i, c);
+      c.set(0xfff6c0);
+      flashB.setColorAt(i, c);
       c.set(0xffcc33);
       warn.setColorAt(i, c);
       c.set(0xff7a1a);
@@ -96,15 +103,15 @@ export function EffectsRenderer() {
       fx.setColorAt(i, c);
       spark.setColorAt(i, c);
     }
-    const all = [stone, bottle, molo, warn, warnFill, glow, flames, burnF, fx, spark];
-    return { stone, bottle, molo, warn, warnFill, glow, flames, burnF, fx, spark, all };
+    const all = [stone, bottle, molo, canister, flashB, warn, warnFill, glow, flames, burnF, fx, spark];
+    return { stone, bottle, molo, canister, flashB, warn, warnFill, glow, flames, burnF, fx, spark, all };
   }, []);
 
   useFrame((state) => {
     const w = simLoop.world;
     const a = simLoop.alpha;
     const t = state.clock.elapsedTime;
-    const { stone, bottle, molo, warn, warnFill, glow, flames, burnF, fx, spark } = o;
+    const { stone, bottle, molo, canister, flashB, warn, warnFill, glow, flames, burnF, fx, spark } = o;
     // ---- vat bi nem + vong canh bao ----
     for (let i = 0; i < MAX_P; i++) {
       const p = w.projectiles[i];
@@ -112,6 +119,8 @@ export function EffectsRenderer() {
         stone.setMatrixAt(i, ZERO);
         bottle.setMatrixAt(i, ZERO);
         molo.setMatrixAt(i, ZERO);
+        canister.setMatrixAt(i, ZERO);
+        flashB.setMatrixAt(i, ZERO);
         warn.setMatrixAt(i, ZERO);
         warnFill.setMatrixAt(i, ZERO);
         continue;
@@ -128,6 +137,13 @@ export function EffectsRenderer() {
       stone.setMatrixAt(i, p.kind === 0 ? mA : ZERO);
       bottle.setMatrixAt(i, p.kind === 1 ? mA : ZERO);
       molo.setMatrixAt(i, p.kind === 2 ? mA : ZERO);
+      canister.setMatrixAt(i, p.kind === 3 ? mA : ZERO);
+      flashB.setMatrixAt(i, p.kind === 4 ? mA : ZERO);
+      if (p.kind >= 3) {
+        warn.setMatrixAt(i, ZERO);
+        warnFill.setMatrixAt(i, ZERO);
+        continue;
+      }
       // vong canh bao: ban kinh chinh la vung anh huong, thu hep va dam dan khi sap cham dat
       const r = p.kind === 2 ? FIRE_R : HIT_R[p.kind] + 0.35;
       const pulse = 1 + 0.18 * (1 - prog) * Math.sin(t * 14);
@@ -193,7 +209,7 @@ export function EffectsRenderer() {
       const age = Math.max(0, w.time - e.t);
       const k = Math.min(1, age / 0.6);
       const col = FX_COL[e.kind] ?? 0xffffff;
-      const sc = (e.kind === 'burst' ? 3.2 : e.kind === 'dodge' ? 1.6 : 1.5) * (0.3 + 0.9 * k);
+      const sc = (e.kind === 'burst' ? 3.2 : e.kind === 'flash' ? 7 : e.kind === 'gaspop' ? 4 : e.kind === 'splash' ? 1.1 : e.kind === 'dodge' ? 1.6 : 1.5) * (0.3 + 0.9 * k);
       vA.set(e.x, 0.34, e.z);
       vS.set(sc, 1, sc);
       mA.compose(vA, Q0, vS);
@@ -208,6 +224,16 @@ export function EffectsRenderer() {
       spark.setMatrixAt(i, ss > 0.02 ? mA : ZERO);
       spark.setColorAt(i, ncol);
     }
+    let pc = 0;
+    for (let i = 0; i < MAX_P; i++) if (w.projectiles[i]?.active) pc = i + 1;
+    for (const m of [stone, bottle, molo, canister, flashB, warn, warnFill]) m.count = pc;
+    let fcount = 0;
+    for (let i = 0; i < MAX_FIRE; i++) if (w.fires[i]?.active) fcount = i + 1;
+    glow.count = fcount;
+    flames.count = fcount * FP;
+    burnF.count = nb;
+    fx.count = Math.min(MAX_FX, w.fx.length);
+    spark.count = fx.count;
     for (const m of o.all) {
       m.instanceMatrix.needsUpdate = true;
     }

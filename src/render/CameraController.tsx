@@ -2,6 +2,8 @@
 import { useFrame, useThree } from '@react-three/fiber';
 import { useEffect } from 'react';
 import { OrthographicCamera } from 'three';
+import { simLoop } from '../sim/SimulationLoop';
+import { QUALITY } from './quality';
 import { cam, camRef, ZOOM_MAX, ZOOM_MIN } from './cameraState';
 
 const DIST = 120;
@@ -98,9 +100,14 @@ export function CameraController() {
     const c = state.camera as OrthographicCamera;
     camRef.current = c;
     const ce = Math.cos(cam.elevation);
-    c.position.set(cam.x + Math.sin(cam.yaw) * ce * DIST, Math.sin(cam.elevation) * DIST, cam.z + Math.cos(cam.yaw) * ce * DIST);
+    // rung camera (no luu dan, molotov, xe bi trung)
+    const sh = simLoop.world.shake * simLoop.world.shake * QUALITY.shake;
+    const t = state.clock.elapsedTime;
+    const sx = sh ? Math.sin(t * 61) * 0.55 * sh : 0;
+    const sz = sh ? Math.cos(t * 53 + 1) * 0.55 * sh : 0;
+    c.position.set(cam.x + sx + Math.sin(cam.yaw) * ce * DIST, Math.sin(cam.elevation) * DIST, cam.z + sz + Math.cos(cam.yaw) * ce * DIST);
     c.zoom = cam.zoom;
-    c.lookAt(cam.x, 0, cam.z);
+    c.lookAt(cam.x + sx, 0, cam.z + sz);
     c.updateProjectionMatrix();
   });
   return null;

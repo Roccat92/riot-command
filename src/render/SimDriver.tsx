@@ -4,6 +4,8 @@ import { useRef } from 'react';
 import { useGameStore } from '../state/GameState';
 import { simLoop } from '../sim/SimulationLoop';
 import { playSfx } from '../ui/sfx';
+import { aim } from './aim';
+import { aimTruck } from '../sim/ToolsSystem';
 
 export const perf = { frames: 0, frameMs: 0, maxMs: 0, fps: 0, window: [] as number[], gl: null as unknown, jsMs: 0 };
 
@@ -12,6 +14,8 @@ export function SimDriver() {
   useFrame((state, dt) => {
     perf.gl = state.gl;
     const t0 = performance.now();
+    const w0 = simLoop.world;
+    if (w0.truck.active && !w0.truck.auto && aim.valid && (useGameStore.getState().truckSel || w0.truck.firing)) aimTruck(w0, aim.x, aim.z);
     simLoop.advance(dt);
     const ev = simLoop.world.events;
     for (let i = 0; i < ev.length && i < 8; i++) playSfx(ev[i].type);

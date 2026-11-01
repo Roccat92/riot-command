@@ -102,3 +102,25 @@ kbd { background: #1a2638; border: 1px solid #33465f; border-radius: 4px; paddin
 .chip.proj-ico { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
 .order.dodge.on { background: #0e8a7a; border-color: #40e0c8; }
 .wave-banner { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); background: rgba(160, 60, 0, 0.92); color: #fff; border: 1px solid #ffb347; padding: 8px 18px; border-radius: 10px; font-weight: 700; letter-spacing: 0.3px; pointer-events: none; z-index: 5; box-shadow: 0 0 22px rgba(255, 140, 40, 0.5); }
+
+/* ---- xe voi rong + trang bi ---- */
+#flash-overlay { position: fixed; inset: 0; background: #fff; opacity: 0; pointer-events: none; z-index: 5; }
+.tools-dock { position: absolute; left: 10px; bottom: 150px; width: 262px; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.tools-dock .panel { pointer-events: auto; padding: 8px 10px; }
+.tools-dock .panel-title { margin-bottom: 6px; font-size: 12.5px; }
+.tools-dock .meter { margin-bottom: 5px; }
+.truck.sel { border-color: #4aa3ff; box-shadow: 0 0 0 1px rgba(74,163,255,0.5); }
+.truck.dead { opacity: 0.7; border-color: #ff5a4a; }
+.tool-row { display: flex; gap: 5px; margin-top: 4px; }
+.tool { flex: 1; min-width: 0; position: relative; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 2px 4px; border-radius: 8px; background: #121c2b; color: #cfe0f7; border: 1px solid #2e415d; cursor: pointer; font-size: 11px; }
+.tool .ico { font-size: 17px; line-height: 1.1; }
+.tool .lbl2 { font-size: 10.5px; color: var(--dim); }
+.tool .cnt { font-size: 11px; font-weight: 700; color: #fff; min-height: 13px; }
+.tool .cd { position: absolute; top: 2px; right: 4px; font-size: 10px; color: #ffd24a; }
+.tool kbd { position: absolute; top: 2px; left: 3px; font-size: 9px; padding: 0 3px; }
+.tool.on { background: #1e3f86; border-color: #6db1ff; color: #fff; }
+.tool.off { opacity: 0.55; }
+.tool:disabled { opacity: 0.4; cursor: default; }
+.tools-dock .hint { margin-top: 6px; font-size: 11px; color: #9fd8ff; }
+.tools-dock .hint.warn { color: #ffd24a; }
+body.targeting canvas { cursor: crosshair; }

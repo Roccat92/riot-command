@@ -70,6 +70,46 @@ export function Minimap() {
         ctx.arc(px(f.x), pz(f.z), Math.max(2.5, f.r * sc), 0, 7);
         ctx.fill();
       }
+      for (const g of w.gas) {
+        if (!g.active) continue;
+        ctx.fillStyle = 'rgba(210,225,110,0.45)';
+        ctx.beginPath();
+        ctx.arc(px(g.x), pz(g.z), Math.max(3, g.r * sc), 0, 7);
+        ctx.fill();
+      }
+      for (const p of w.puddles) {
+        if (!p.active || p.kind !== 0) continue;
+        ctx.fillStyle = 'rgba(110,170,220,0.5)';
+        ctx.beginPath();
+        ctx.arc(px(p.x), pz(p.z), Math.max(1.4, p.r * sc), 0, 7);
+        ctx.fill();
+      }
+      for (let i = 0; i < w.burning.length; i++) {
+        if (w.burning[i] <= 0) continue;
+        const o = w.map.obstacles[i];
+        ctx.fillStyle = 'rgba(255,120,20,0.9)';
+        ctx.beginPath();
+        ctx.arc(px(o.x), pz(o.z), 3, 0, 7);
+        ctx.fill();
+      }
+      if (w.truck.active) {
+        const t = w.truck;
+        ctx.save();
+        ctx.translate(px(t.x), pz(t.z));
+        ctx.rotate(-t.heading + Math.PI);
+        ctx.fillStyle = t.hp > 0 ? '#e8403a' : '#555';
+        ctx.fillRect(-2.2, -4.2, 4.4, 8.4);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(-2.2, -0.6, 4.4, 1.2);
+        ctx.restore();
+        if (useGameStore.getState().truckSel) {
+          ctx.strokeStyle = '#6db1ff';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(px(t.x), pz(t.z), 7, 0, 7);
+          ctx.stroke();
+        }
+      }
       for (const p of w.projectiles) {
         if (!p.active) continue;
         ctx.strokeStyle = p.kind === 2 ? '#ff9a2a' : '#ffe27a';

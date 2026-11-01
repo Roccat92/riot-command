@@ -1,6 +1,7 @@
 // HUD: thanh tren, minimap, bang chon doi hinh, bang squad (chan dung + chi so + lenh), man hinh dau/cuoi.
 import { useEffect } from 'react';
-import { useGameStore, type HudSquad } from '../state/GameState';
+import { TUNE } from '../sim/tuning';
+import { useGameStore, type HudSquad, type ToolKind } from '../state/GameState';
 import { SQUAD_COLORS } from '../render/UnitRenderer';
 import { cam } from '../render/cameraState';
 import { perf } from '../render/SimDriver';
@@ -283,6 +284,92 @@ function SquadPanel() {
   );
 }
 
+function Cd({ v }: { v: number }) {
+  return v > 0.05 ? <span className="cd">{Math.ceil(v)}s</span> : null;
+}
+
+function ToolsDock() {
+  const hud = useGameStore((s) => s.hud);
+  const truckSel = useGameStore((s) => s.truckSel);
+  const targeting = useGameStore((s) => s.targeting);
+  const toast = useGameStore((s) => s.toast);
+  const selectTruck = useGameStore((s) => s.selectTruck);
+  const spray = useGameStore((s) => s.truckSpray);
+  const autoT = useGameStore((s) => s.truckAutoToggle);
+  const refill = useGameStore((s) => s.truckRefill);
+  const setTargeting = useGameStore((s) => s.setTargeting);
+  useEffect(() => {
+    document.body.classList.toggle('targeting', !!targeting);
+    return () => document.body.classList.remove('targeting');
+  }, [targeting]);
+  const tk = hud.truck;
+  const t = hud.tools;
+  const tool = (k: ToolKind, label: string, key: string, icon: string, count: string, cd: number, ready: boolean, title: string) => (
+    <button
+      key={k}
+      className={'tool' + (targeting === k ? ' on' : '') + (ready ? '' : ' off')}
+      onClick={() => setTargeting(targeting === k ? null : k)}
+      data-tool={k}
+      title={title}
+    >
+      <span className="ico">{icon}</span>
+      <span className="lbl2">{label}</span>
+      <span className="cnt">{count}</span>
+      <Cd v={cd} />
+      <kbd>{key}</kbd>
+    </button>
+  );
+  return (
+    <div className="tools-dock" id="tools-dock">
+      {tk.active && (
+        <div className={'panel truck' + (truckSel ? ' sel' : '') + (tk.dead ? ' dead' : '')} id="truck-panel">
+          <div className="panel-title">
+            Xe vòi rồng {tk.dead ? '(hỏng)' : tk.auto ? '(tự động)' : truckSel ? '(đang điều khiển)' : ''}
+          </div>
+          <Bar label="Độ bền" value={tk.hp * 100} color={tk.hp > 0.5 ? '#3fcf7a' : tk.hp > 0.25 ? '#ffd24a' : '#ff5a4a'} />
+          <Bar
+            label={tk.pumpLock ? 'Bồn nước (bơm quá nhiệt)' : tk.refilling ? 'Bồn nước (đang nạp)' : 'Bồn nước'}
+            value={tk.water * 100}
+            color={tk.pumpLock ? '#ff8a4a' : 'linear-gradient(90deg,#2d9cff,#8fd6ff)'}
+          />
+          <div className="tool-row">
+            <button className={'tool' + (truckSel ? ' on' : '')} disabled={tk.dead} onClick={() => selectTruck()} data-tool="truck" title="T: chọn xe. Chuột phải = lái, giữ chuột trái = phun">
+              <span className="ico">🚒</span>
+              <span className="lbl2">Điều khiển</span>
+              <kbd>T</kbd>
+            </button>
+            <button className={'tool' + (tk.firing ? ' on' : '')} disabled={tk.dead} onClick={() => spray()} data-tool="spray" title="G: bật/tắt phun về phía con trỏ">
+              <span className="ico">💧</span>
+              <span className="lbl2">Phun</span>
+              <kbd>G</kbd>
+            </button>
+            <button className={'tool' + (tk.auto ? ' on' : '')} disabled={tk.dead} onClick={autoT} data-tool="auto" title="Y: xe tự ngắm kẻ hung hăng và đám cháy">
+              <span className="ico">⟳</span>
+              <span className="lbl2">Tự động</span>
+              <kbd>Y</kbd>
+            </button>
+            <button className={'tool' + (tk.refilling ? ' on' : '')} disabled={tk.dead} onClick={refill} data-tool="refill" title="U: lái xe về trụ nước để nạp lại bồn">
+              <span className="ico">⛽</span>
+              <span className="lbl2">Nạp nước</span>
+              <kbd>U</kbd>
+            </button>
+          </div>
+        </div>
+      )}
+      <div className="panel equip" id="equip-panel">
+        <div className="panel-title">Trang bị (squad chọn, hoặc tất cả)</div>
+        <div className="tool-row">
+          {tool('gas', 'Hơi cay', 'C', '☁', `${t.gas}/${t.gasMax}`, t.gasCd, t.gas > 0 && t.gasCd <= 0.05, 'C: bắn lựu đạn hơi cay vào con trỏ. Đám khói làm người biểu tình ho, mất tinh thần và giải tán')}
+          {tool('flash', 'Choáng', 'B', '✸', `${t.flash}/${t.flashMax}`, t.flashCd, t.flash > 0 && t.flashCd <= 0.05, 'B: lựu đạn choáng: làm choáng người trong bán kính 6,5 m vài giây')}
+          {tool('lrad', 'LRAD', 'L', '))', t.lradOn ? 'ON' : t.lradCd > 0.05 ? '' : 'sẵn sàng', t.lradCd, t.lradCd <= 0.05 && !t.lradOn, `L: loa LRAD, chùm âm thanh hình nón ~30 m làm đám đông mất tinh thần (chờ ${TUNE.lradCd}s)`)}
+        </div>
+        {targeting && <div className="hint">Click trái để phát, chuột phải / Esc để hủy</div>}
+        {toast && performance.now() - toast.t < 2500 && <div className="hint warn">{toast.text}</div>}
+      </div>
+    </div>
+  );
+}
+
 function WaveBanner() {
   const t = useGameStore((s) => s.hud.waveAlert);
   if (!t) return null;
@@ -308,6 +395,12 @@ function Help() {
       <div>
         <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> đội hình <kbd>V</kbd> né <kbd>Space</kbd> tạm dừng
       </div>
+      <div>
+        <kbd>T</kbd> xe vòi rồng <kbd>G</kbd> phun <kbd>Y</kbd> tự động <kbd>U</kbd> nạp
+      </div>
+      <div>
+        <kbd>C</kbd> hơi cay <kbd>B</kbd> choáng <kbd>L</kbd> LRAD (nhắm bằng chuột)
+      </div>
     </div>
   );
 }
@@ -321,7 +414,7 @@ function Briefing() {
         <h1>RIOT COMMAND</h1>
         <p>
           Quảng trường Place Fictive (Paris giả tưởng) đang bất ổn. Bạn chỉ huy <b>3 squad cảnh sát chống bạo động (24 người)</b> đối đầu với <b>5 nhóm bạo
-          động (65 người)</b>, xen lẫn khoảng 10 dân thường. Hai nhóm sẽ kéo đến như đợt tiếp viện từ các con phố bên trong 5 phút.
+          động (73 người)</b>, xen lẫn khoảng 10 dân thường. Hai nhóm sẽ kéo đến như đợt tiếp viện từ các con phố bên trong 5 phút.
         </p>
         <ul>
           <li>
@@ -333,6 +426,14 @@ function Briefing() {
           <li>
             <b>Bạo động biết ném:</b> đá, chai thủy tinh và <b>molotov</b>. Vòng cảnh báo trên mặt đất cho thấy điểm rơi. Khiên hướng đúng về phía người ném chặn gần hết sát thương
             (Compact chắn tốt nhất). Molotov tạo vùng lửa cháy 6-8 giây: lính tự tránh lửa, và có thể ra lệnh <kbd>V</kbd> Dodge để né kịp. Xoa dịu (De-escalate) làm họ bớt ném.
+          </li>
+          <li>
+            <b>Xe vòi rồng:</b> <kbd>T</kbd> chọn xe, chuột phải để lái, giữ chuột trái (hoặc <kbd>G</kbd>) để phun về phía con trỏ, <kbd>Y</kbd> để xe tự ngắm, <kbd>U</kbd> lái về trụ nước nạp bồn
+            (100 nước, tia hao 10/giây). Tia nước đẩy lùi, làm ngã người biểu tình và dập tắt molotov, rào chắn, xe đang cháy. Người biểu tình sẽ nhắm ném đá, chai, molotov vào xe!
+          </li>
+          <li>
+            <b>Trang bị:</b> <kbd>C</kbd> lựu đạn hơi cay (khói làm họ ho, tản ra), <kbd>B</kbd> lựu đạn choáng, <kbd>L</kbd> loa LRAD. Nhắm bằng con trỏ chuột; bấm nút trên HUD rồi click để nhắm.
+            Số đạn có hạn cho mỗi squad.
           </li>
           <li>Cảnh sát không bao giờ tự động tấn công dân thường. Dùng vũ lực càng ít càng tốt: mức vũ lực cao làm đám đông giận dữ hơn.</li>
           <li>
@@ -367,6 +468,10 @@ function Results() {
     ['Vật bị ném (molotov)', `${st.thrown} (${st.molotovs})`],
     ['Khiên chặn / trúng người / né', `${st.blocked} / ${st.projHits} / ${st.dodged}`],
     ['Vùng lửa / giây lính bị cháy', `${st.fireZones} / ${Math.round(st.burnSeconds)}`],
+    ['Xe vòi rồng: nước dùng / người ngã / đám cháy dập', `${Math.round(st.waterUsed)} / ${st.knockdowns} / ${st.extinguished}`],
+    ['Hơi cay / choáng / LRAD dùng', `${st.gasUsed} / ${st.flashUsed} / ${st.lradUsed}`],
+    ['Người ho vì hơi cay / bị choáng', `${st.gassed} / ${st.stunned}`],
+    ['Sát thương xe vòi rồng', Math.round(st.truckDamage)],
     ['Dùng dùi cui / đẩy khiên', `${st.batons} / ${st.pushes}`],
     ['Mức vũ lực trung bình / đỉnh', `${Math.round(result.avgForce)}% / ${Math.round(st.peakForce)}%`],
     ['Stability cuối', `${Math.round(result.stability)}%`],
@@ -440,8 +545,31 @@ export function HUD() {
         case 'KeyM':
           st.applyOrder('MOVE');
           break;
+        case 'KeyT':
+          st.selectTruck();
+          break;
+        case 'KeyG':
+          st.truckSpray();
+          break;
+        case 'KeyY':
+          st.truckAutoToggle();
+          break;
+        case 'KeyU':
+          st.truckRefill();
+          break;
+        case 'KeyC':
+          st.fireTool('gas');
+          break;
+        case 'KeyB':
+          st.fireTool('flash');
+          break;
+        case 'KeyL':
+          st.fireTool('lrad');
+          break;
         case 'Escape':
-          st.select([]);
+          if (st.targeting) st.setTargeting(null);
+          else if (st.truckSel) st.selectTruck(false);
+          else st.select([]);
           break;
         case 'Tab': {
           e.preventDefault();
@@ -460,6 +588,7 @@ export function HUD() {
   return (
     <div className="hud">
       <div id="select-box" />
+      <div id="flash-overlay" />
       {phase !== 'briefing' && (
         <>
           <SquadTags />
@@ -467,6 +596,7 @@ export function HUD() {
           <div className="minimap-wrap">
             <Minimap />
           </div>
+          <ToolsDock />
           <div className="bottom">
             <FormationPicker />
             <SquadPanel />

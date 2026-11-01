@@ -6,6 +6,7 @@ import { useGameStore } from '../state/GameState';
 import { simLoop } from '../sim/SimulationLoop';
 import { pickSquadNear } from '../sim/SquadController';
 import { isAlive } from '../sim/types';
+import { aim } from './aim';
 
 export function InputLayer() {
   const gl = useThree((s) => s.gl);
@@ -35,13 +36,55 @@ export function InputLayer() {
       box.style.width = Math.abs(x1 - x0) + 'px';
       box.style.height = Math.abs(y1 - y0) + 'px';
     };
+    let spraying = false;
+    const hover = (e: PointerEvent) => {
+      const p = ground(e.clientX, e.clientY);
+      if (p) {
+        aim.x = p.x;
+        aim.z = p.z;
+        aim.valid = true;
+      }
+    };
     const down = (e: PointerEvent) => {
-      if (useGameStore.getState().phase !== 'playing') return;
+      const st0 = useGameStore.getState();
+      if (st0.phase !== 'playing') return;
       if (e.button === 0) {
+        const p = ground(e.clientX, e.clientY);
+        if (p) {
+          aim.x = p.x;
+          aim.z = p.z;
+        }
+        const w0 = simLoop.world;
+        // che do nham trang bi: click de nem / phat
+        if (st0.targeting && p) {
+          st0.fireTool(st0.targeting, p.x, p.z);
+          return;
+        }
+        // click vao xe voi rong -> chon xe
+        if (p && w0.truck.active && !st0.truckSel && Math.hypot(p.x - w0.truck.x, p.z - w0.truck.z) < 3.2) {
+          st0.selectTruck(true);
+          return;
+        }
+        // che do xe: giu chuot trai de phun (tru khi click vao squad de chuyen sang squad)
+        if (st0.truckSel && p && !pickSquadNear(w0, p.x, p.z, 2.4)) {
+          st0.truckSpray(true);
+          spraying = true;
+          return;
+        }
         start = { x: e.clientX, y: e.clientY };
         dragging = false;
       } else if (e.button === 2) {
         const p = ground(e.clientX, e.clientY);
+        const st1 = useGameStore.getState();
+        if (st1.targeting) {
+          st1.setTargeting(null);
+          return;
+        }
+        if (p && st1.truckSel) {
+          st1.truckDrive(p.x, p.z);
+          window.dispatchEvent(new CustomEvent('rc-move', { detail: { x: p.x, z: p.z } }));
+          return;
+        }
         if (p) {
           const st = useGameStore.getState();
           if (st.selection.length) {
@@ -57,6 +100,11 @@ export function InputLayer() {
       if (dragging) setBox(start.x, start.y, e.clientX, e.clientY, true);
     };
     const up = (e: PointerEvent) => {
+      if (e.button === 0 && spraying) {
+        spraying = false;
+        useGameStore.getState().truckSpray(false);
+        return;
+      }
       if (e.button !== 0 || !start) return;
       const st = useGameStore.getState();
       const w = simLoop.world;
@@ -87,11 +135,13 @@ export function InputLayer() {
     };
     const ctx = (e: Event) => e.preventDefault();
     el.addEventListener('pointerdown', down);
+    el.addEventListener('pointermove', hover);
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
     el.addEventListener('contextmenu', ctx);
     return () => {
       el.removeEventListener('pointerdown', down);
+      el.removeEventListener('pointermove', hover);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
       el.removeEventListener('contextmenu', ctx);

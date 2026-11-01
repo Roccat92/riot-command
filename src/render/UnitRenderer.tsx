@@ -189,12 +189,22 @@ export function UnitRenderer() {
       let batonA = -0.4;
       const at = u.animDur > 0 ? 1 - u.animT / u.animDur : 1;
       const animating = u.animT > 0;
-      if (down) {
-        const e = easeOut(u.downT);
-        tilt = -Math.PI / 2 * e;
+      let hh = h;
+      if (down || u.downT > 0.02) {
+        const e = easeOut(Math.min(1, u.downT));
+        tilt = (-Math.PI / 2) * e;
         y = 0.17 * e;
         armLa = 0.4 * e;
         armRa = -0.3 * e;
+        if (u.knock > 0 && !down) {
+          // nga do voi rong: nay len, lan tron, tay chan quang quat
+          const el = u.knockDur - u.knock;
+          const fl = Math.min(1, Math.hypot(u.kx, u.kz) / 2.5);
+          y += 0.55 * Math.sin(Math.PI * Math.min(1, el / 0.55));
+          hh = h + Math.min(2.4, el * 3.2) * (u.id % 2 ? 1 : -1) * (0.5 + fl);
+          armLa = 0.4 + Math.sin(t * 18 + u.id) * 1.1 * fl;
+          armRa = -0.3 + Math.cos(t * 16 + u.id) * 1.1 * fl;
+        }
       } else {
         if (u.team === POLICE) {
           armLa = -1.25;
@@ -204,6 +214,9 @@ export function UnitRenderer() {
             shieldPush = 0.38 * Math.sin(Math.PI * at);
             tilt += 0.22 * Math.sin(Math.PI * at);
             armLa = -1.45;
+          } else if (animating && u.anim === 'THROW') {
+            armRa = at < 0.45 ? -0.25 - 2.7 * (at / 0.45) : -2.95 + 3.2 * Math.min(1, (at - 0.45) / 0.3);
+            tilt += 0.2 * Math.sin(Math.PI * Math.min(1, at * 1.3));
           } else if (animating && u.anim === 'BATON') {
             const raise = at < 0.3 ? at / 0.3 : 1;
             armRa = at < 0.3 ? -0.25 + (-2.5 + 0.25) * raise : -2.5 + 2.3 * Math.min(1, (at - 0.3) / 0.35);
@@ -230,6 +243,18 @@ export function UnitRenderer() {
           armLa = -2.7 + 0.3 * Math.sin(t * 10 + u.offA);
           armRa = -2.7 + 0.3 * Math.sin(t * 10 + u.offA + 1);
         }
+        if (u.cough > 0) {
+          // ho: khom nguoi, tay bit mat
+          tilt += 0.55 + 0.12 * Math.sin(t * 22 + u.id);
+          armRa = -1.95;
+          armLa = -1.7;
+          y += 0.05 * Math.abs(Math.sin(t * 22 + u.id));
+        } else if (u.stun > 0) {
+          // choang: lao dao, tay che mat
+          tilt += 0.22 * Math.sin(t * 6 + u.id);
+          armRa = -2.2;
+          armLa = -2.1;
+        }
         if (animating && u.anim === 'HIT') tilt -= 0.38 * Math.sin(Math.PI * at);
         if (animating && u.anim === 'DODGE') {
           // lao nguoi sang ben nem tranh
@@ -238,7 +263,7 @@ export function UnitRenderer() {
         }
       }
       // ma tran goc
-      eA.set(tilt, h, 0, 'YXZ');
+      eA.set(tilt, hh, 0, 'YXZ');
       qA.setFromEuler(eA);
       vA.set(x, y * S, z);
       vS.set(S, S, S);
@@ -289,7 +314,7 @@ export function UnitRenderer() {
         // bieu tuong trang thai tren dau
         const j = idx.marker.get(u.id)!;
         const mc = MARKER_COLOR[u.state];
-        if (mc !== undefined && !down) {
+        if (mc !== undefined && !down && u.knock <= 0) {
           if (lastMarker.current.get(u.id) !== u.state) {
             markerColor.set(mc);
             meshes.marker.setColorAt(j, markerColor);

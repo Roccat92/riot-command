@@ -5,6 +5,18 @@ import { sfx } from '../ui/sfx';
 import { orderMove, setFormation, setOrder } from '../sim/SquadController';
 import { simLoop } from '../sim/SimulationLoop';
 import { triggerDodge } from '../sim/ProjectileSystem';
+import { TUNE } from '../sim/tuning';
+import { aim } from '../render/aim';
+import {
+  aimTruck,
+  orderTruckMove,
+  orderTruckRefill,
+  setTruckAuto,
+  setTruckFiring,
+  useFlash,
+  useGas,
+  useLrad,
+} from '../sim/ToolsSystem';
 import {
   CIVILIAN,
   RIOTER,
@@ -36,7 +48,33 @@ export interface HudSquad {
   alert: string;
   dodge: boolean; // dang o tu the san sang ne
 }
+export type ToolKind = 'gas' | 'flash' | 'lrad';
+export interface HudTruck {
+  active: boolean;
+  hp: number; // 0..1
+  water: number; // 0..1
+  firing: boolean;
+  auto: boolean;
+  refilling: boolean;
+  pumpLock: boolean;
+  dead: boolean;
+}
+export interface HudTools {
+  gas: number;
+  gasMax: number;
+  flash: number;
+  flashMax: number;
+  gasCd: number; // giay cho chung (nho nhat trong cac squad dang xet)
+  flashCd: number;
+  lradCd: number; // giay cho LRAD (0 = san sang)
+  lradOn: boolean;
+}
 export interface Hud {
+  truck: HudTruck;
+  tools: HudTools;
+  knockdowns: number;
+  gassed: number;
+  extinguished: number;
   time: number;
   limit: number;
   police: number;
@@ -61,6 +99,11 @@ export interface Hud {
 }
 
 export const EMPTY_HUD: Hud = {
+  truck: { active: false, hp: 1, water: 1, firing: false, auto: false, refilling: false, pumpLock: false, dead: false },
+  tools: { gas: 0, gasMax: 0, flash: 0, flashMax: 0, gasCd: 0, flashCd: 0, lradCd: 0, lradOn: false },
+  knockdowns: 0,
+  gassed: 0,
+  extinguished: 0,
   time: 0,
   limit: 300,
   police: 0,
@@ -84,7 +127,13 @@ export const EMPTY_HUD: Hud = {
   squads: [],
 };
 
-export function makeSnapshot(w: World): Hud {
+/** Cac squad dang dung trang bi: squad duoc chon, neu khong co thi tat ca squad con nguoi. */
+export function toolSquads(w: World, sel: number[]): number[] {
+  const ids = sel.filter((i) => w.squads[i] && w.squads[i].aliveCount > 0);
+  return ids.length ? ids : w.squads.filter((s) => s.aliveCount > 0).map((s) => s.id);
+}
+
+export function makeSnapshot(w: World, sel: number[] = []): Hud {
   let police = 0;
   let policeTotal = 0;
   let rioters = 0;
@@ -147,7 +196,45 @@ export function makeSnapshot(w: World): Hud {
   let fires = 0;
   for (const f of w.fires) if (f.active) fires++;
   const st = m.stats;
+  const tk = w.truck;
+  const ids = toolSquads(w, sel);
+  let gas = 0;
+  let flash = 0;
+  let gasCd = 99;
+  let flashCd = 99;
+  let lradCd = 99;
+  for (const id of ids) {
+    const s = w.squads[id];
+    gas += s.gas;
+    flash += s.flash;
+    gasCd = Math.min(gasCd, s.gas > 0 ? s.eqCd : 99);
+    flashCd = Math.min(flashCd, s.flash > 0 ? s.eqCd : 99);
+    lradCd = Math.min(lradCd, s.lradCd);
+  }
   return {
+    truck: {
+      active: tk.active,
+      hp: tk.hp / tk.maxHp,
+      water: tk.water / tk.maxWater,
+      firing: tk.firing && tk.jet > 0.2,
+      auto: tk.auto,
+      refilling: tk.refilling,
+      pumpLock: tk.pumpCd > 0,
+      dead: tk.hp <= 0,
+    },
+    tools: {
+      gas,
+      gasMax: ids.length * TUNE.gasCharges,
+      flash,
+      flashMax: ids.length * TUNE.flashCharges,
+      gasCd: gasCd === 99 ? 0 : gasCd,
+      flashCd: flashCd === 99 ? 0 : flashCd,
+      lradCd: lradCd === 99 ? 0 : lradCd,
+      lradOn: w.lrad.active,
+    },
+    knockdowns: st.knockdowns,
+    gassed: st.gassed,
+    extinguished: st.extinguished,
     time: w.time,
     limit: w.timeLimit,
     police,
@@ -189,6 +276,16 @@ interface GameStore {
   applyOrder: (order: Order) => void;
   moveTo: (x: number, z: number) => void;
   dodge: () => void;
+  truckSel: boolean;
+  targeting: ToolKind | null;
+  toast: { text: string; t: number } | null;
+  selectTruck: (on?: boolean) => void;
+  truckSpray: (on?: boolean) => void;
+  truckAutoToggle: () => void;
+  truckRefill: () => void;
+  truckDrive: (x: number, z: number) => void;
+  setTargeting: (k: ToolKind | null) => void;
+  fireTool: (k: ToolKind, x?: number, z?: number) => boolean;
   sfxOn: boolean;
   toggleSfx: () => void;
   publish: () => void;
@@ -206,7 +303,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   start: () => {
     simLoop.running = true;
     simLoop.paused = false;
-    set({ phase: 'playing', paused: false, hud: makeSnapshot(simLoop.world) });
+    set({ phase: 'playing', paused: false, hud: makeSnapshot(simLoop.world, get().selection) });
   },
   restart: () => {
     simLoop.restart();
@@ -215,9 +312,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
       phase: 'playing',
       paused: false,
       selection: [],
+      truckSel: false,
+      targeting: null,
       result: null,
       generation: simLoop.generation,
-      hud: makeSnapshot(simLoop.world),
+      hud: makeSnapshot(simLoop.world, get().selection),
     });
   },
   togglePause: () => {
@@ -233,7 +332,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   select: (ids, additive = false) => {
     const cur = get().selection;
     const next = additive ? Array.from(new Set([...cur, ...ids])) : ids;
-    set({ selection: next });
+    set({ selection: next, truckSel: ids.length ? false : get().truckSel });
   },
   applyFormation: (type) => {
     const w = simLoop.world;
@@ -256,13 +355,75 @@ export const useGameStore = create<GameStore>((set, get) => ({
     for (const id of get().selection) if (w.squads[id]) triggerDodge(w, w.squads[id]);
     get().publish();
   },
+  truckSel: false,
+  targeting: null,
+  toast: null,
+  selectTruck: (on) => {
+    const w = simLoop.world;
+    if (!w.truck.active) return;
+    const v = on ?? !get().truckSel;
+    set({ truckSel: v, selection: v ? [] : get().selection, targeting: null });
+    get().publish();
+  },
+  truckSpray: (on) => {
+    const w = simLoop.world;
+    if (!w.truck.active || w.truck.hp <= 0) return;
+    const v = on ?? !w.truck.firing;
+    if (v) {
+      w.truck.auto = false;
+      aimTruck(w, aim.x, aim.z);
+    }
+    setTruckFiring(w, v);
+    get().publish();
+  },
+  truckAutoToggle: () => {
+    const w = simLoop.world;
+    if (!w.truck.active || w.truck.hp <= 0) return;
+    setTruckAuto(w, !w.truck.auto);
+    if (!w.truck.auto) w.truck.firing = false;
+    get().publish();
+  },
+  truckRefill: () => {
+    const w = simLoop.world;
+    if (!w.truck.active || w.truck.hp <= 0) return;
+    orderTruckRefill(w);
+    get().publish();
+  },
+  truckDrive: (x, z) => {
+    const w = simLoop.world;
+    if (!w.truck.active || w.truck.hp <= 0) return;
+    orderTruckMove(w, x, z);
+  },
+  setTargeting: (k) => set({ targeting: k, truckSel: k ? false : get().truckSel }),
+  fireTool: (k, x = aim.x, z = aim.z) => {
+    const w = simLoop.world;
+    const ids = toolSquads(w, get().selection).sort((a, b) => {
+      const sa = w.squads[a];
+      const sb = w.squads[b];
+      return Math.hypot(sa.cx - x, sa.cz - z) - Math.hypot(sb.cx - x, sb.cz - z);
+    });
+    const fn = k === 'gas' ? useGas : k === 'flash' ? useFlash : useLrad;
+    let ok = false;
+    for (const id of ids) {
+      if (fn(w, id, x, z)) {
+        ok = true;
+        break;
+      }
+    }
+    set({
+      targeting: null,
+      toast: ok ? null : { text: k === 'lrad' ? 'LRAD đang hồi chiêu' : 'Hết đạn hoặc đang nạp', t: performance.now() },
+    });
+    get().publish();
+    return ok;
+  },
   sfxOn: false,
   toggleSfx: () => {
     const on = !get().sfxOn;
     sfx.enabled = on;
     set({ sfxOn: on });
   },
-  publish: () => set({ hud: makeSnapshot(simLoop.world) }),
+  publish: () => set({ hud: makeSnapshot(simLoop.world, get().selection) }),
   finish: () => set({ phase: 'ended', result: simLoop.world.result }),
 }));
 
