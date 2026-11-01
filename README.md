@@ -33,7 +33,7 @@ Cảnh sát **không bao giờ** tự động tấn công dân thường, và ch
 
 ## Vật bị ném, molotov và tiếp viện (cập nhật độ khó)
 
-Phản hồi từ người chơi thử: ít người biểu tình, quá thụ động nên quá dễ. Bản này có **5 nhóm, 65 người** (3 nhóm đầu 39 người có mặt từ đầu, 2 nhóm tiếp viện 26 người kéo đến từ phố phía Đông sau khoảng 55 giây và phố phía Tây sau khoảng 120 giây, có biểu ngữ cảnh báo và đồng hồ đếm ngược trên thanh trên).
+Phản hồi từ người chơi thử: ít người biểu tình, quá thụ động nên quá dễ. Bản này có **5 nhóm, 73 người** (3 nhóm đầu 39 người có mặt từ đầu, 2 nhóm tiếp viện 34 người kéo đến từ phố phía Đông sau khoảng 55 giây và phố phía Tây sau khoảng 120 giây, có biểu ngữ cảnh báo và đồng hồ đếm ngược trên thanh trên).
 
 - **Vai trò**: người ném (giữ khoảng cách 9-15 m, vừa lùi vừa ném, đi vòng sang bên), người vòng hông (đi sang sườn đội hình rồi mới xông vào), người cận chiến. Nhóm đang hung hăng kéo theo người xung quanh.
 - **Vật bị ném**: đá, chai thủy tinh và molotov bay theo đường parabol, có **vòng cảnh báo trên mặt đất** ở điểm rơi (vòng thu hẹp khi sắp chạm đất). Đá và chai gây ít sát thương, thể lực và tinh thần. **Khiên hướng về phía người ném chặn gần hết sát thương** (Compact chắn góc rộng nhất, rồi Double, rồi Line), quay lưng thì không chắn được. Mỗi người ném có số đá/chai giới hạn; hết thì lao vào cận chiến.
@@ -56,6 +56,56 @@ Phản hồi từ người chơi thử: ít người biểu tình, quá thụ đ
 
 Nhận xét trung thực: tiến thẳng hết sức không còn thắng dễ như trước (trước đây thắng sau 55-98 s, nay chỉ thắng muộn, sau khoảng 220 s, hầu hết xếp hạng C, mất khoảng 9 trong 24 cảnh sát) và chỉ phòng thủ thì gần như luôn thua. Tuy nhiên ba chiến thuật tiến lên khác nhau **chưa tách biệt được về tỉ lệ thắng** (sai số mẫu 30 ván khoảng 8-9 điểm phần trăm); chiến thuật hỗn hợp hiện không thắng nhiều hơn tiến thẳng. Né molotov giúp rõ rệt về số lần né (khoảng 85 so với 22) nhưng chưa chuyển thành tỉ lệ thắng. Đây là điểm cần cân bằng tiếp.
 
+## Xe vòi rồng, trang bị mới và hỗn loạn (cập nhật gần nhất)
+
+Phản hồi: muốn nhiều hành động, chân thực và hỗn loạn hơn. Bản này thêm:
+
+### Xe vòi rồng (low-poly, dáng xe cứu hỏa)
+
+- Xe xuất hiện ở đầu phố phía Nam, có đèn nhấp nháy xanh/đỏ, tháp phun quay theo điểm ngắm. Bạn **lái** (chuột phải, đường đi A*) hoặc để **tự động** (`Y`).
+- **Tia nước**: tầm khoảng 22 m, hạt nước bay theo đường cong (130 hạt, `?quality=low` giảm còn 48) và bắn tóe ở điểm chạm, để lại **vũng nước** trên nền. Tia **đẩy lùi** người biểu tình theo hướng tia, làm giảm tinh thần và thể lực, và **làm ngã** sau khoảng 0,4 giây bị phun liên tục: nhân vật nảy lên, lăn tròn, tay chân quơ quào rồi tự đứng dậy sau 2-3 giây. Người ngã không đánh được cảnh sát.
+- **Dập lửa**: tia nước dập tắt vùng lửa molotov, rào chắn và xe đang cháy dọc đường tia.
+- **Bồn nước hữu hạn**: 100 nước, tia hao 10 nước mỗi giây (khoảng 10 giây phun liên tục). Cạn nước thì bơm khóa 2,5 giây; lái xe tới **trụ nước** (đầu phố phía Nam, nạp khoảng 22 nước mỗi giây) để đầy lại.
+- **Xe cũng là mục tiêu**: người biểu tình nhắm ném đá (3 sát thương), chai (5) và molotov (khoảng 46, kèm cháy khoảng 7 mỗi giây tới khi tự dập hoặc phun nước lên chính mình). Xe có 330 độ bền, về 0 thì hỏng, bốc khói và ngừng phun. Phun nước làm họ nhắm vào xe nhiều hơn.
+
+### Trang bị cảnh sát (mỗi squad có số lượng hữu hạn)
+
+| Trang bị | Phím | Số lượng / hồi | Hiệu ứng |
+| --- | --- | --- | --- |
+| Lựu đạn hơi cay | `C` | 2 quả mỗi squad, nạp 10 giây | Rơi xuống tạo **đám khói** bán kính 5,2 m kéo dài khoảng 13-16 giây. Người biểu tình bên trong **ho** (khom người, bịt mặt, đi chậm 40%), mất tinh thần và kích động liên tục nên tản ra. Cảnh sát không bị ảnh hưởng. |
+| Lựu đạn choáng | `B` | 2 quả mỗi squad, nạp 6 giây | Chớp sáng trắng và rung camera; mọi người trong bán kính 6,5 m **choáng** tới khoảng 2 giây (gần như đứng yên, không ném, không đánh) và mất tinh thần. |
+| LRAD (loa âm thanh) | `L` | 1 lần mỗi squad, hồi 120 giây | Chùm hình nón dài 30 m, rộng khoảng 57 độ, kéo dài 5 giây (sóng âm hình cung trên nền). Người trong chùm bị đau tai: chậm 50%, mất tinh thần và kích động dần. Không ảnh hưởng người ngoài chùm hay phía sau. |
+
+HUD: bên trái có bảng **Xe vòi rồng** (độ bền, bồn nước, nút Điều khiển / Phun / Tự động / Nạp nước) và bảng **Trang bị** (số quả còn lại, đếm ngược hồi chiêu, trạng thái LRAD), minimap hiện xe, đám khói, vũng nước và vật cản đang cháy. Màn hình kết quả thêm thống kê nước đã dùng, số người bị ngã, đám cháy đã dập, số quả đã dùng, số người ho / choáng, sát thương lên xe.
+
+### Hỗn loạn về hình ảnh
+
+- **Khói** bốc lên từ vùng lửa molotov, xe và rào chắn đang cháy; **rào chắn, xe van bị molotov sẽ cháy** (ngọn lửa trên vật cản, vật cản sạm đen và giữ vết cháy). Xe van phía Tây đã cháy sẵn từ đầu ván. Cháy 25-60 giây nếu không ai dập.
+- **Mảnh vụn** (đá, thủy tinh xanh, tia lửa, giọt nước) bắn ra mỗi khi va chạm, chai vỡ, molotov nổ, lựu đạn nổ; **vết cháy đen** trên nền sau khi lửa tắt; **vũng nước** khi phun.
+- **Rung camera** khi lựu đạn nổ, molotov rơi hoặc xe bị trúng; **chớp trắng** toàn màn hình khi lựu đạn choáng nổ.
+- **Ngã kiểu ragdoll** (nảy lên, lăn, quơ tay chân), tư thế ho và choáng cho từng nhân vật.
+- **Hiệu năng**: tất cả là `InstancedMesh` với pool cố định, chỉ vẽ số instance đang dùng (`mesh.count`), nên ngân sách tam giác không tăng so với bản trước (khoảng 42 nghìn tam giác trên khung hình cảnh nặng). Thêm `?quality=low`: tắt bóng đổ, dpr = 1, giảm hạt (tia nước 48, khói 28, mảnh vụn 40, đám khói 4 cụm), rung camera nhẹ hơn.
+
+### Cân bằng (cập nhật khi thêm công cụ mới)
+
+Thêm công cụ khiến ván dễ hơn nên độ khó cơ bản được tăng: 73 người biểu tình (nhóm tiếp viện 16 và 18), người ném nhanh hơn (`throwCd` 0,45) và dùng molotov nhiều hơn (`moloRate` 0,6). Hằng số mới trong `src/sim/tuning.ts` (gasCharges, flashCharges, lradCd, truckHp, truckAggro, waterPush, gasMorale, lradMorale, flashStun, flashMorale, moloTruck, eqCd). Kết quả `scripts/balance.ts` (30 seed, bản MVP; `MODE=old` khi không có công cụ, `MODE=tools` với bot dùng đủ xe tự động + hơi cay + choáng + LRAD):
+
+| Chiến thuật bot | Không dùng công cụ mới | Dùng đủ công cụ (xe tự động, hơi cay, choáng, LRAD) | Cảnh sát ngã TB (không / có) |
+| --- | --- | --- | --- |
+| Chỉ giữ vị trí (Hold) | 0/30 (0%) | 0/30 (0%) | 12,8 / 8,1 |
+| Tiến thẳng (Advance cả 3 squad) | 8/30 (27%), toàn hạng C | 30/30 (100%), 14 B, 12 A, 3 C, 1 S, thắng sau 198 s | 9,9 / 0,9 |
+| Tiến thẳng + né molotov | 6/30 (20%), toàn hạng C | 30/30 (100%), 14 B, 11 A, 3 C, 2 S, 202 s | 10,4 / 1,0 |
+| Tiến theo nhịp (pulse: tiến, nghỉ hồi sức, Compact) | 9/30 (30%) | 27/30 (90%), 12 A, 11 B, 4 C, 219 s | 10,3 / 2,1 |
+| Hỗn hợp (né, xoa dịu, tiến khi có địch) | 10/30 (33%) | 30/30 (100%), 17 A, 9 B, 2 S, 2 C, 194 s | 10,4 / 0,8 |
+
+(Số cũ trước khi thêm công cụ và tăng độ khó: tiến thẳng 73%, hỗn hợp 63%, Hold 13%.)
+
+Nhận xét trung thực:
+
+- Công cụ mới **có giá trị rõ rệt**: cùng một chiến thuật, tỉ lệ thắng nhảy từ 20-33% lên 90-100% và cảnh sát ngã từ khoảng 10 xuống 1-2 người. Ba thứ đều đóng góp (khi thử tắt từng thứ, ván vẫn thắng, nhưng thắng muộn hơn và hạng thấp hơn).
+- Bot dùng công cụ **gần như hoàn hảo** (nhắm vào chỗ đông nhất, không bao giờ quên LRAD), nên 100% là cận trên. Người chơi thật phải tự nhắm, quản lý số quả có hạn, bảo vệ xe (xe trung bình nhận khoảng 270-340 sát thương trên 330 độ bền, tức thường bị phá hủy hoặc gần hỏng trước cuối ván) và vẫn phải dùng đội hình, nên khó hơn nhiều. Chưa có người chơi thật đo lại.
+- Ván không tầm thường vì **chỉ phòng thủ vẫn thua 100%** (cả khi có công cụ): phải chủ động tiến lên và dùng công cụ để giải tán đám đông, vì số người (73) và tốc độ ném đủ để hạ lực lượng cảnh sát nếu cứ đứng yên.
+
 ## Điều khiển
 
 | Phím / chuột | Chức năng |
@@ -70,12 +120,20 @@ Nhận xét trung thực: tiến thẳng hết sức không còn thắng dễ nh
 | `X` | De-escalate: hạ dùi cui, không tấn công, làm dịu người biểu tình quanh đó |
 | `V` | Dodge: squad sẵn sàng né vật ném trong 8 giây (tốn thể lực, tránh vòng cảnh báo) |
 | `M` | Move: lệnh di chuyển thông thường |
+| `T` | Chọn / bỏ chọn **xe vòi rồng**. Khi chọn xe: chuột phải = lái xe tới điểm chỉ, giữ chuột trái = phun về phía con trỏ (click vào một squad để quay lại điều khiển squad) |
+| `G` | Bật / tắt phun liên tục về phía con trỏ chuột |
+| `Y` | Xe **tự động**: tự ngắm kẻ hung hăng gần phòng tuyến và các đám cháy, hết nước tự về trụ nạp rồi quay lại |
+| `U` | Lái xe về **trụ nước** (đầu phố phía Nam) để nạp lại bồn |
+| `C` | **Lựu đạn hơi cay** tại con trỏ (squad được chọn gần điểm nhắm nhất, nếu không chọn squad nào thì squad gần nhất còn đạn) |
+| `B` | **Lựu đạn choáng** tại con trỏ |
+| `L` | **LRAD** hướng về con trỏ (chùm âm thanh hình nón) |
+| Nút trên HUD | Bấm nút Hơi cay / Choáng / LRAD rồi click trái lên bản đồ để phát (chuột phải hoặc `Esc` để hủy) |
 | `W A S D` | Dịch camera |
 | Cuộn chuột | Zoom (chụm 2 ngón không hỗ trợ, dùng cuộn) |
 | `Q` / `E` | Xoay camera |
 | Chuột giữa kéo | Dịch camera |
 | `Space` | Tạm dừng / tiếp tục |
-| `Tab` / `Esc` | Chọn squad kế tiếp / bỏ chọn |
+| `Tab` / `Esc` | Chọn squad kế tiếp / bỏ chọn (`Esc` cũng hủy chế độ nhắm và thôi chọn xe) |
 
 Giao diện giống ảnh tham chiếu: thanh trên (thời gian, quân số các bên, Stability, An toàn dân thường, mức vũ lực), minimap ở góc trên phải (nhấp để dịch camera), chọn đội hình ở góc dưới trái, bảng squad ở giữa phía dưới (chân dung, Health/Stamina/Morale/Cohesion, các nút Move/Hold/Advance/Regroup/De-escalate). Có nút tốc độ 1x/2x/4x.
 
@@ -144,13 +202,13 @@ npm run build      # kiểm tra kiểu + build sản xuất (base /riot-command/
 
 Triển khai: workflow `.github/workflows/deploy.yml` chạy kiểm thử, build rồi đưa lên GitHub Pages.
 
-Tham số URL: `?slice=1` (bản lát cắt nhỏ), `?q=high` (cố định chất lượng cao, tắt tự giảm).
+Tham số URL: `?slice=1` (bản lát cắt nhỏ), `?q=high` (cố định chất lượng cao, tắt tự giảm), `?quality=low` (tắt bóng đổ, dpr 1, giảm hạt).
 
 ## Kiểm thử và xác minh
 
-- `npm test`: 58 kiểm thử (gồm `tests/projectile.test.ts`: khiên chặn theo hướng, quỹ đạo, tốc độ ném, vùng lửa, né, tiếp viện, mô phỏng cân bằng bằng bot) và các kiểm thử cũ (formation, FSM người biểu tình và dân thường, quy tắc "cảnh sát không đánh dân thường", mô phỏng 120 giây không NaN và không rời bản đồ, tính xác định theo seed, đổi đội hình mượt, thắng thua).
+- `npm test`: 82 kiểm thử (mới: `tests/tools.test.ts` cho xe vòi rồng, tia nước, ngã, dập lửa, bồn nước, bị trúng đạn, hơi cay, choáng, LRAD, vật cản cháy; `tests/toolsui.test.ts` cho HUD snapshot, store và bot dùng công cụ; cũ gồm `tests/projectile.test.ts`: khiên chặn theo hướng, quỹ đạo, tốc độ ném, vùng lửa, né, tiếp viện, mô phỏng cân bằng bằng bot) và các kiểm thử cũ (formation, FSM người biểu tình và dân thường, quy tắc "cảnh sát không đánh dân thường", mô phỏng 120 giây không NaN và không rời bản đồ, tính xác định theo seed, đổi đội hình mượt, thắng thua).
 - `scripts/verify.cjs` và `scripts/play.cjs`: điều khiển Chrome headless (playwright-core) để kiểm tra chọn bằng click, kéo chọn, đổi đội hình bằng phím, chuột phải di chuyển, camera, tạm dừng, chơi tự động đến khi có kết quả, đo hiệu năng. Ảnh chụp nằm trong `shots/`.
-- `scripts/balance.ts`: cân bằng bằng bot (`TUNE='{"pressure":1.2}' ONLY=mixed npx vite-node scripts/balance.ts 30`). `scripts/fx.cjs`: chụp ảnh ném/vòng cảnh báo/lửa/né bằng Chrome headless và đếm lỗi console.
+- `scripts/balance.ts`: cân bằng bằng bot (`TUNE='{"pressure":1.2}' ONLY=mixed npx vite-node scripts/balance.ts 30`). `scripts/fx.cjs`: chụp ảnh ném/vòng cảnh báo/lửa/né bằng Chrome headless và đếm lỗi console. `scripts/tools-shots.cjs`: chụp xe vòi rồng, tia nước, hơi cay, choáng, LRAD, vật cản cháy (`shots/tk-*`). `scripts/perf2.cjs`: đo FPS khi mọi hiệu ứng cùng bật (`QS='?quality=low'`).
 - `scripts/simrun.ts`: chạy mô phỏng không giao diện theo các chiến thuật khác nhau để cân bằng.
 
 ## Hạn chế đã biết

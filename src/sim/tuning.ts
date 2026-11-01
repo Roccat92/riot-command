@@ -16,15 +16,15 @@ export const TUNE = {
   ammo: 12, // so da/chai trung binh moi nguoi nem (het thi phai xong vao can chien)
   advDrain: 2.4, // hao the luc moi giay khi ADVANCE
   eqCd: 10, // thoi gian cho chung cua dan hoi cay (luu dan = 60%)
-  lradCd: 75, // thoi gian cho LRAD
+  lradCd: 120, // thoi gian cho LRAD
   moloTruck: 46, // sat thuong molotov len xe voi rong
   flashStun: 2, // giay choang toi da cua luu dan
   flashMorale: 6, // tinh than mat khi bi luu dan
   gasCharges: 2, // so dan hoi cay moi squad
   flashCharges: 2, // so luu dan choang moi squad
-  truckHp: 420, // do ben xe voi rong
-  truckAggro: 0.35, // xac suat nguoi bieu tinh nham vao xe thay vi canh sat
-  waterPush: 26, // luc day cua tia nuoc
+  truckHp: 330, // do ben xe voi rong
+  truckAggro: 0.5, // xac suat nguoi bieu tinh nham vao xe thay vi canh sat
+  waterPush: 22, // luc day cua tia nuoc
   gasMorale: 2, // tinh than mat moi giay trong hoi cay
   lradMorale: 1.5, // tinh than mat moi giay trong chum LRAD
 };
