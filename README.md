@@ -31,6 +31,31 @@ Mọi nhân vật và môi trường đều được dựng bằng code (hình h
 
 Cảnh sát **không bao giờ** tự động tấn công dân thường, và chỉ đánh người biểu tình còn hung hãn (có kiểm thử cho quy tắc này). Dân thường vẫn có thể bị thương gián tiếp: đứng gần trận giao tranh, hoặc ở sát điểm một cú đánh. Vì vậy hãy tránh đẩy giao tranh vào chỗ có dân thường.
 
+## Vật bị ném, molotov và tiếp viện (cập nhật độ khó)
+
+Phản hồi từ người chơi thử: ít người biểu tình, quá thụ động nên quá dễ. Bản này có **5 nhóm, 65 người** (3 nhóm đầu 39 người có mặt từ đầu, 2 nhóm tiếp viện 26 người kéo đến từ phố phía Đông sau khoảng 55 giây và phố phía Tây sau khoảng 120 giây, có biểu ngữ cảnh báo và đồng hồ đếm ngược trên thanh trên).
+
+- **Vai trò**: người ném (giữ khoảng cách 9-15 m, vừa lùi vừa ném, đi vòng sang bên), người vòng hông (đi sang sườn đội hình rồi mới xông vào), người cận chiến. Nhóm đang hung hăng kéo theo người xung quanh.
+- **Vật bị ném**: đá, chai thủy tinh và molotov bay theo đường parabol, có **vòng cảnh báo trên mặt đất** ở điểm rơi (vòng thu hẹp khi sắp chạm đất). Đá và chai gây ít sát thương, thể lực và tinh thần. **Khiên hướng về phía người ném chặn gần hết sát thương** (Compact chắn góc rộng nhất, rồi Double, rồi Line), quay lưng thì không chắn được. Mỗi người ném có số đá/chai giới hạn; hết thì lao vào cận chiến.
+- **Molotov**: rơi xuống tạo **vùng lửa cháy 6-8 giây** (hạt lửa low-poly, ánh cam trên nền). Đứng trong lửa mất máu và tinh thần, đơn vị tự tìm đường tránh và chạy ra khỏi lửa. Trúng trực tiếp gây sát thương lớn.
+- **Né (Dodge)**: lệnh `V` cho squad được chọn vào tư thế sẵn sàng 8 giây: mọi người còn đủ thể lực sẽ lao sang bên khỏi điểm rơi (tốn thể lực). Không có lệnh thì lính không tự né molotov (chỉ khiên mới giúp). Có hoạt ảnh ném và né.
+- **Tốc độ ném** tăng theo mức kích động của từng người. De-escalate làm họ bớt ném; bị đánh gục, rút lui hay giải tán thì ngừng ném.
+- **Phản hồi**: thanh trên hiện số vật đã ném, số vùng lửa đang cháy, số lần khiên chặn và né; màn hình kết quả có thêm thống kê. Nút loa bật âm thanh tổng hợp (mặc định tắt).
+- **Hiệu năng**: vật bị ném, hạt lửa, vòng và hiệu ứng va chạm là `InstancedMesh` dùng pool cố định (64 vật bị ném, 12 vùng lửa x 14 hạt, 48 hiệu ứng va chạm), không cấp phát mới mỗi khung hình.
+
+### Cân bằng đo được
+
+`scripts/balance.ts` chạy mô phỏng không giao diện (30 seed mỗi chiến thuật, bản đồ MVP, hằng số trong `src/sim/tuning.ts`):
+
+| Chiến thuật bot | Thắng | Thời gian thắng TB | Xếp hạng khi thắng | Cảnh sát ngã TB |
+| --- | --- | --- | --- | --- |
+| Chỉ giữ vị trí (Hold) | 4/30 (13%) | 241 s | C | 13,2 |
+| Tiến thẳng (Advance cả 3 squad) | 22/30 (73%) | 223 s | 20 C, 1 B, 1 D | 8,7 |
+| Tiến thẳng + né molotov | 20/30 (67%) | 221 s | 16 C, 3 B, 1 D | 8,4 |
+| Hỗn hợp (né, xoa dịu nhóm còn bình tĩnh, tiến khi có địch) | 19/30 (63%) | 222 s | 12 C, 5 B, 2 D | 8,1 |
+
+Nhận xét trung thực: tiến thẳng hết sức không còn thắng dễ như trước (trước đây thắng sau 55-98 s, nay chỉ thắng muộn, sau khoảng 220 s, hầu hết xếp hạng C, mất khoảng 9 trong 24 cảnh sát) và chỉ phòng thủ thì gần như luôn thua. Tuy nhiên ba chiến thuật tiến lên khác nhau **chưa tách biệt được về tỉ lệ thắng** (sai số mẫu 30 ván khoảng 8-9 điểm phần trăm); chiến thuật hỗn hợp hiện không thắng nhiều hơn tiến thẳng. Né molotov giúp rõ rệt về số lần né (khoảng 85 so với 22) nhưng chưa chuyển thành tỉ lệ thắng. Đây là điểm cần cân bằng tiếp.
+
 ## Điều khiển
 
 | Phím / chuột | Chức năng |
@@ -43,6 +68,7 @@ Cảnh sát **không bao giờ** tự động tấn công dân thường, và ch
 | `F` | Advance: tiến chậm tới nhóm gần nhất, đẩy khiên ép đám đông |
 | `R` | Regroup: thu quân về đội hình, hồi cohesion và morale, không tấn công |
 | `X` | De-escalate: hạ dùi cui, không tấn công, làm dịu người biểu tình quanh đó |
+| `V` | Dodge: squad sẵn sàng né vật ném trong 8 giây (tốn thể lực, tránh vòng cảnh báo) |
 | `M` | Move: lệnh di chuyển thông thường |
 | `W A S D` | Dịch camera |
 | Cuộn chuột | Zoom (chụm 2 ngón không hỗ trợ, dùng cuộn) |
@@ -75,12 +101,16 @@ Phần mô phỏng (`src/sim`) hoàn toàn tách khỏi phần dựng hình (`sr
 | `sim/NavGrid.ts` | Lưới dẫn đường A* có làm mượt đường đi. |
 | `sim/SpatialHash.ts` | Lưới băm không gian. |
 | `sim/CrowdAI.ts` | FSM cho người biểu tình và dân thường. |
+| `sim/ProjectileSystem.ts` | Ném đá/chai/molotov (parabol, vòng cảnh báo), khiên chặn theo hướng, vùng lửa, lệnh né. |
+| `sim/tuning.ts` | Hằng số cân bằng (có thể ghi đè khi quét tham số). |
+| `sim/bots.ts` | Bot chiến thuật dùng để cân bằng và kiểm thử. |
 | `sim/CombatSystem.ts` | Đẩy khiên, vung dùi cui, phản ứng trúng đòn, thiệt hại phụ, quy tắc chọn mục tiêu. |
 | `sim/SquadController.ts` | Lệnh squad: di chuyển, đổi hình, Hold/Advance/Regroup/De-escalate, ý định từng cảnh sát. |
 | `sim/Objectives.ts` | Stability, An toàn dân thường, mức vũ lực, điều kiện thắng thua, xếp hạng. |
 | `sim/SimulationLoop.ts` | Bước cố định (fixed timestep), tích luỹ thời gian, nội suy hiển thị. |
 | `state/GameState.ts` | Kho zustand cho trạng thái UI và ảnh chụp HUD. |
 | `render/UnitRenderer.tsx` | Vẽ nhân vật bằng `InstancedMesh` (geometry dùng chung, màu theo instance), hoạt ảnh đi, đẩy khiên, vung dùi cui, trúng đòn, nằm xuống. |
+| `render/EffectsRenderer.tsx` | Vật bị ném, vòng cảnh báo, vùng lửa, hiệu ứng va chạm (instanced, pool cố định). |
 | `render/CameraController.tsx` | Camera trực giao nghiêng 45 độ: WASD, cuộn, Q/E. |
 | `render/WorldScene.tsx` | Dựng môi trường, gộp hình học tĩnh theo màu đỉnh để giảm draw call; tòa nhà gần camera tự hạ thấp để không che. |
 | `ui/HUD.tsx` | Giao diện: thanh trên, minimap, đội hình, bảng squad, màn hình đầu và cuối. |
@@ -118,14 +148,15 @@ Tham số URL: `?slice=1` (bản lát cắt nhỏ), `?q=high` (cố định ch�
 
 ## Kiểm thử và xác minh
 
-- `npm test`: 39 kiểm thử (formation, FSM người biểu tình và dân thường, quy tắc "cảnh sát không đánh dân thường", mô phỏng 120 giây không NaN và không rời bản đồ, tính xác định theo seed, đổi đội hình mượt, thắng thua).
+- `npm test`: 58 kiểm thử (gồm `tests/projectile.test.ts`: khiên chặn theo hướng, quỹ đạo, tốc độ ném, vùng lửa, né, tiếp viện, mô phỏng cân bằng bằng bot) và các kiểm thử cũ (formation, FSM người biểu tình và dân thường, quy tắc "cảnh sát không đánh dân thường", mô phỏng 120 giây không NaN và không rời bản đồ, tính xác định theo seed, đổi đội hình mượt, thắng thua).
 - `scripts/verify.cjs` và `scripts/play.cjs`: điều khiển Chrome headless (playwright-core) để kiểm tra chọn bằng click, kéo chọn, đổi đội hình bằng phím, chuột phải di chuyển, camera, tạm dừng, chơi tự động đến khi có kết quả, đo hiệu năng. Ảnh chụp nằm trong `shots/`.
+- `scripts/balance.ts`: cân bằng bằng bot (`TUNE='{"pressure":1.2}' ONLY=mixed npx vite-node scripts/balance.ts 30`). `scripts/fx.cjs`: chụp ảnh ném/vòng cảnh báo/lửa/né bằng Chrome headless và đếm lỗi console.
 - `scripts/simrun.ts`: chạy mô phỏng không giao diện theo các chiến thuật khác nhau để cân bằng.
 
 ## Hạn chế đã biết
 
 - Hiệu năng đo trên Chrome headless với **SwiftShader (render bằng CPU)**, không có GPU thật: khoảng 12-20 fps ở 960x540 đến 1440x810. Phần mô phỏng chỉ tốn khoảng 0.2-0.4 ms mỗi khung hình. Chưa đo trên GPU thật hay thiết bị di động.
-- Chưa thử trên cảm ứng. Chưa có âm thanh.
-- Cân bằng chỉ được tinh chỉnh qua các bot kịch bản đơn giản, chưa có người chơi thật thử.
+- Chưa thử trên cảm ứng. Âm thanh chỉ là tiếng tổng hợp đơn giản (mặc định tắt).
+- Cân bằng chỉ được tinh chỉnh qua các bot kịch bản đơn giản, chưa có người chơi thật thử; chiến thuật hỗn hợp chưa vượt rõ rệt tiến thẳng (xem bảng cân bằng).
 - Hàng rào dài hoặc vật cản dày có thể làm một số đơn vị đi vòng chậm; đội hình rộng (LINE) kẹt trong lối hẹp sẽ tạm xô lệch.
 - Cảnh sát tụt lại sau khi đi có thể đứng lệch ô vài giây khi đội đổi hướng gấp.

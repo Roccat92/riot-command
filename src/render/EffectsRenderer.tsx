@@ -3,7 +3,6 @@
 import { useFrame } from '@react-three/fiber';
 import { useMemo } from 'react';
 import {
-  AdditiveBlending,
   BoxGeometry,
   CircleGeometry,
   Color,
@@ -57,9 +56,9 @@ function hash(n: number): number {
 export function EffectsRenderer() {
   const o = useMemo(() => {
     const solid = new MeshBasicMaterial({ transparent: true, opacity: 0.95, depthWrite: false });
-    const glowMat = new MeshBasicMaterial({ transparent: true, opacity: 0.55, depthWrite: false, blending: AdditiveBlending, color: 0xff7a1a });
+    const glowMat = new MeshBasicMaterial({ transparent: true, opacity: 0.5, depthWrite: false, color: 0xff6a10 });
     const ringMat = new MeshBasicMaterial({ transparent: true, opacity: 0.9, depthWrite: false, depthTest: false, side: DoubleSide });
-    const flameMat = new MeshBasicMaterial({ transparent: true, opacity: 0.9, depthWrite: false, blending: AdditiveBlending });
+    const flameMat = new MeshBasicMaterial({ transparent: true, opacity: 0.95, depthWrite: false });
     const stone = mk(new OctahedronGeometry(0.2, 0), solid, MAX_P);
     const bottle = mk(new BoxGeometry(0.14, 0.4, 0.14), solid, MAX_P);
     const molo = mk(new BoxGeometry(0.2, 0.34, 0.2), solid, MAX_P);
