@@ -1,4 +1,5 @@
 // GameWorld: du lieu ban do (quang truong Paris gia tuong) va khoi tao the gioi mo phong.
+import { TUNE } from './tuning';
 import { assignSlots, formationSlots, slotToWorld } from './FormationSystem';
 import { NavGrid } from './NavGrid';
 import { SpatialHash } from './SpatialHash';
@@ -7,6 +8,9 @@ import {
   POLICE,
   RIOTER,
   mulberry32,
+  ROLE_FLANKER,
+  ROLE_MELEE,
+  ROLE_THROWER,
   type Building,
   type Group,
   type MapData,
@@ -126,6 +130,13 @@ function emptyStats(): Stats {
     peakForce: 0,
     forceSum: 0,
     forceSamples: 0,
+    thrown: 0,
+    molotovs: 0,
+    projHits: 0,
+    blocked: 0,
+    dodged: 0,
+    fireZones: 0,
+    burnSeconds: 0,
   };
 }
 
@@ -169,6 +180,18 @@ function newUnit(id: number, team: Team, group: number, x: number, z: number, rn
     danger: 0,
     dangerX: 0,
     dangerZ: 0,
+    role: 0,
+    throwCd: 3 + rng() * 6,
+    ammo: 0,
+    ammoMolo: 0,
+    flankSide: rng() < 0.5 ? -1 : 1,
+    calmed: false,
+    dodgeT: 0,
+    dodgeX: 0,
+    dodgeZ: 0,
+    burn: 0,
+    pending: false,
+    spawnAt: 0,
     exitIdx: -1,
     path: [],
     pathT: rng() * 0.5,
@@ -222,7 +245,10 @@ const GROUP_SPAWN: Vec2[] = [
   { x: -12, z: -11 },
   { x: 12, z: -11 },
   { x: 0, z: -16 },
+  { x: 26.5, z: 0 }, // tiep vien tu pho phia Dong
+  { x: -26.5, z: 1 }, // tiep vien tu pho phia Tay
 ];
+export const WAVE_LABEL = ['', '', '', 'phố phía Đông', 'phố phía Tây'];
 const GROUP_SPAWN_SLICE: Vec2[] = [{ x: 0, z: -11 }];
 const CIV_SPOTS: Vec2[] = [
   { x: -22.5, z: -8 },
@@ -266,6 +292,8 @@ export function createWorld(config: WorldConfig): World {
       slotError: 0,
       alert: '',
       aliveCount: 8,
+      alertT: 0,
+      stamina: 100,
     };
     const slotsLocal = formationSlots(squad.formation, 8);
     const tmp: Vec2 = { x: 0, z: 0 };
@@ -283,10 +311,12 @@ export function createWorld(config: WorldConfig): World {
     squads.push(squad);
   }
 
-  // Nhom bao dong: moi nhom 10 nguoi
+  // Nhom bao dong (so nguoi theo config), co dot tiep vien tu cac con pho ben
   const gp = config.groups === 1 ? GROUP_SPAWN_SLICE : GROUP_SPAWN;
-  const baseAg = [0.3, 0.25, 0.2];
-  const escal = [0.007, 0.0055, 0.0045];
+  const baseAg = [0.35, 0.3, 0.28, 0.7, 0.7];
+  const escal = [0.009 * TUNE.escal, 0.007 * TUNE.escal, 0.006 * TUNE.escal, 0.02, 0.02];
+  const throwerFrac = [0.3, 0.45, 0.6, 0.4, 0.5];
+  const flankerFrac = [0.15, 0.3, 0.1, 0.35, 0.15];
   for (let g = 0; g < config.groups; g++) {
     const group: Group = {
       id: g,
@@ -298,15 +328,28 @@ export function createWorld(config: WorldConfig): World {
       escalation: escal[g],
       baseAgitation: baseAg[g],
     };
-    for (let k = 0; k < 10; k++) {
-      const p = freeSpot(map, gp[g].x, gp[g].z, rng, 4.2, units);
+    const wave = config.waveTimes[g] ?? 0;
+    const size = config.groupSizes[g] ?? 10;
+    for (let k = 0; k < size; k++) {
+      const spread = wave > 0 ? 3.4 : 4.2;
+      const p = freeSpot(map, gp[g].x, gp[g].z, rng, spread, units);
       const u = newUnit(units.length, RIOTER, g, p.x, p.z, rng);
-      u.state = 'GATHER';
+      u.state = wave > 0 ? 'AGITATED' : 'GATHER';
       u.agitation = baseAg[g] + (rng() - 0.5) * 0.12;
       u.homeX = gp[g].x;
       u.homeZ = gp[g].z;
       u.heading = u.pheading = u.face = Math.PI * 0;
-      u.temper = (g === 0 ? 1.05 : g === 1 ? 0.95 : 0.85) * (0.8 + rng() * 0.4);
+      u.temper = (g === 0 ? 1.05 : g === 1 ? 0.95 : g === 2 ? 0.9 : 1.1) * (0.8 + rng() * 0.4);
+      const roll = rng();
+      u.role = roll < throwerFrac[g] ? ROLE_THROWER : roll < throwerFrac[g] + flankerFrac[g] ? ROLE_FLANKER : ROLE_MELEE;
+      u.ammo = u.role === ROLE_THROWER ? Math.round(TUNE.ammo * (0.7 + rng() * 0.6)) : u.role === ROLE_FLANKER ? 2 : 0;
+      u.ammoMolo = u.role === ROLE_THROWER && rng() < TUNE.molo ? 1 : 0;
+      if (wave > 0) {
+        u.active = false;
+        u.pending = true;
+        u.spawnAt = wave;
+        u.heading = u.pheading = u.face = gp[g].x > 0 ? -Math.PI / 2 : Math.PI / 2;
+      }
       group.unitIds.push(u.id);
       units.push(u);
     }
@@ -336,6 +379,11 @@ export function createWorld(config: WorldConfig): World {
     nav,
     hash,
     strikes: [],
+    projectiles: Array.from({ length: 64 }, () => ({ active: false, kind: 0, sx: 0, sz: 0, tx: 0, tz: 0, t: 0, dur: 1, arc: 3, thrower: -1, spin: 0 })),
+    fires: Array.from({ length: 12 }, () => ({ active: false, x: 0, z: 0, r: 2.4, t: 0, dur: 7 })),
+    fx: [],
+    events: [],
+    alert: null,
     metrics: {
       stability: 75,
       safety: 100,
@@ -368,5 +416,19 @@ export function initialAssign(world: World): void {
     const ws = slots.map((sl) => slotToWorld(s.cx, s.cz, s.heading, sl, { x: 0, z: 0 }));
     const a = assignSlots(us, ws);
     us.forEach((u, i) => (u.slot = a[i]));
+  }
+}
+
+/** Dot tiep vien: don vi cho den gio thi xuat hien o cuoi con pho. */
+export function updateWaves(w: World): void {
+  for (const u of w.units) {
+    if (!u.pending || w.time < u.spawnAt) continue;
+    u.pending = false;
+    u.active = true;
+    const g = w.groups[u.group];
+    if (!w.alert || w.alert.t !== u.spawnAt) {
+      w.alert = { text: `Đợt tiếp viện của người biểu tình từ ${WAVE_LABEL[g.id] || 'con phố bên'}!`, t: u.spawnAt };
+      w.events.push({ type: 'wave', x: g.cx, z: g.cz });
+    }
   }
 }

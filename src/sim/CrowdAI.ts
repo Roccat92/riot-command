@@ -1,10 +1,14 @@
 // CrowdAI: may trang thai huu han (FSM) cho nguoi bieu tinh va dan thuong.
 // IDLE, GATHER, AGITATED, APPROACH, ENGAGE, RETREAT, PANIC, DISPERSE (+ DOWN khi mat kha nang).
 import { exitGoal, navGoal, setGoal } from './MovementSystem';
+import { TUNE } from './tuning';
+import { THROW_MAX, tryThrow } from './ProjectileSystem';
 import {
   CIVILIAN,
   POLICE,
   RIOTER,
+  ROLE_FLANKER,
+  ROLE_THROWER,
   clamp,
   isAlive,
   type AIState,
@@ -184,6 +188,8 @@ function updateRioter(w: World, u: Unit, dt: number, force: number, squads: Worl
   let nr = 0; // dong bon trong 6m
   let advancing = false;
   let calmed = false;
+  let fat = 0; // suc ep cua hang khien tien len (giam khi ho kiet suc)
+  let hot = 0; // dong bon dang hung han gan do keo nguoi khac vao
   for (const p of w.units) {
     if (!isAlive(p)) continue;
     const d = Math.hypot(p.x - u.x, p.z - u.z);
@@ -197,22 +203,31 @@ function updateRioter(w: World, u: Unit, dt: number, force: number, squads: Worl
         const sq = squads[p.group];
         if (sq.order === 'ADVANCE' && d < 7) advancing = true;
       }
-    } else if (p.team === RIOTER && p !== u && d < 6) nr++;
+    } else if (p.team === RIOTER && p !== u) {
+      if (d < 6) nr++;
+      if (d < 9 && (p.state === 'APPROACH' || p.state === 'ENGAGE')) hot++;
+    }
   }
   for (const s of squads) {
     if (s.order === 'DEESCALATE' && Math.hypot(s.cx - u.x, s.cz - u.z) < 15 && s.aliveCount > 0) calmed = true;
-    if (s.order === 'ADVANCE' && Math.hypot(s.cx - u.x, s.cz - u.z) < 12) advancing = true;
+    if (s.order === 'ADVANCE' && Math.hypot(s.cx - u.x, s.cz - u.z) < 18 && s.aliveCount > 0) {
+      advancing = true;
+      fat = Math.max(fat, 0.3 + 0.7 * clamp((s.stamina - 20) / 55, 0, 1));
+    }
   }
   u.nearPolice = nd;
   u.nearPoliceId = nid;
+  u.calmed = calmed;
 
   // kich dong
   let da = 0;
   const fleeing = u.state === 'RETREAT' || u.state === 'PANIC' || u.state === 'DISPERSE';
   if (!calmed) da += g.escalation * u.temper;
   if (nd < 12) da += 0.04 * (1 - nd / 12) + (advancing ? 0.03 : 0);
+  if (advancing && !calmed && u.agitation < 0.7 && u.state !== 'RETREAT') da += TUNE.provoke; // tien len ma khong xoa diu se khien dam dong nong len
   if (force > 55) da += ((force - 55) / 45) * 0.02;
   if (g.agitation > u.agitation) da += 0.3 * (g.agitation - u.agitation) * (0.4 + 0.6 * (u.cohesion / 100));
+  if (!calmed && !fleeing) da += 0.015 * Math.min(hot, 5); // dam dong hung han keo nguoi xung quanh
   if (calmed) da -= 0.14;
   if (u.morale < 40) da -= 0.02;
   if (fleeing) da = -0.05;
@@ -224,7 +239,8 @@ function updateRioter(w: World, u: Unit, dt: number, force: number, squads: Worl
     dm -= (advancing ? 0.9 : 0.35) * (Math.min(np, 6) / 3);
     if (nr >= 5 && np <= 4) dm += 0.9; // dong nguoi tao can dam
     if (nr / (np + 0.5) > 1.6) dm += 0.8;
-  } else if (!advancing && u.morale < 75) dm += 0.9;
+  } else if (advancing && nd < 19) dm -= (TUNE.pressure * Math.max(fat, 0.7)) / (1 + TUNE.embolden * hot); // bi ep lui boi hang khien dang tien
+  else if (!advancing && u.morale < 75) dm += 0.9;
   dm += 0.12 * (g.morale - u.morale);
   if (force > 70) dm += 0.5;
   u.morale = clamp(u.morale + dm * dt, 0, 100);
@@ -321,6 +337,7 @@ function intent(w: World, dt: number): void {
   for (const u of w.units) {
     if (!isAlive(u) || u.team === POLICE) continue;
     if (u.team === RIOTER) {
+      u.throwCd -= dt;
       const g = w.groups[u.group];
       const tgt = u.nearPoliceId >= 0 ? w.units[u.nearPoliceId] : null;
       switch (u.state) {
@@ -345,6 +362,8 @@ function intent(w: World, dt: number): void {
             cz += (dz / d) * 2.2;
           }
           wander(w, u, dt, cx, cz, 2.4, 1.5 * u.temper);
+          // nem tu xa khi dam dong da nong
+          if (u.role === ROLE_THROWER || u.agitation > 0.85) tryThrow(w, u, tgt);
           break;
         }
         case 'APPROACH': {
@@ -352,10 +371,34 @@ function intent(w: World, dt: number): void {
           const dx = tgt.x - u.x;
           const dz = tgt.z - u.z;
           const d = Math.hypot(dx, dz) || 1;
-          const weave = Math.sin(t * 2.1 + u.offA * 3) * 0.9 * Math.min(1, d / 6);
           const sp = 2.7 * u.temper * (0.7 + 0.3 * (u.stamina / 100));
-          navGoal(w, u, tgt.x + (-dz / d) * weave, tgt.z + (dx / d) * weave, sp, 1.2, dt);
-          u.face = Math.atan2(dx, dz);
+          if (u.role === ROLE_THROWER) {
+            // giu khoang cach 9-15 m: tien, lui (vua lui vua nem) hoac di vong
+            tryThrow(w, u, tgt);
+            if (d > 15) navGoal(w, u, tgt.x, tgt.z, sp, 1.0, dt);
+            else if (d < 9) {
+              const away = Math.min(1, (9 - d) / 4);
+              setGoal(u, u.x - (dx / d) * 6, u.z - (dz / d) * 6, (1.6 + 0.5 * away) * (0.6 + 0.4 * (u.stamina / 100)), 0.5);
+            } else {
+              const side = u.flankSide * Math.sin(t * 0.6 + u.offA);
+              setGoal(u, u.x + (-dz / d) * side * 3, u.z + (dx / d) * side * 3, 1.2, 0.5);
+            }
+            u.face = Math.atan2(dx, dz);
+          } else if (u.role === ROLE_FLANKER && d > 7) {
+            // van hong: di toi mot ben doi hinh roi moi xong vao
+            const sq = w.squads[tgt.group];
+            const fx = sq.cx + Math.cos(sq.heading) * u.flankSide * 10.5 - Math.sin(sq.heading) * 1.5;
+            const fz = sq.cz - Math.sin(sq.heading) * u.flankSide * 10.5 - Math.cos(sq.heading) * 1.5;
+            const df = Math.hypot(fx - u.x, fz - u.z);
+            if (df > 4 && d > 9) navGoal(w, u, fx, fz, sp * 1.1, 1.0, dt);
+            else navGoal(w, u, tgt.x, tgt.z, sp * 1.15, 1.2, dt);
+            if (d < 20 && u.agitation > 0.85) tryThrow(w, u, tgt);
+          } else {
+            const weave = Math.sin(t * 2.1 + u.offA * 3) * 0.9 * Math.min(1, d / 6);
+            navGoal(w, u, tgt.x + (-dz / d) * weave, tgt.z + (dx / d) * weave, sp, 1.2, dt);
+            if (d > 8 && d < 18 && u.agitation > 0.9) tryThrow(w, u, tgt);
+          }
+          if (u.role !== ROLE_THROWER) u.face = Math.atan2(dx, dz);
           break;
         }
         case 'ENGAGE': {
@@ -430,3 +473,5 @@ export function updateCrowdAI(w: World, dt: number): void {
   intent(w, dt);
 }
 
+
+void THROW_MAX;

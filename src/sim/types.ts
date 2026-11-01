@@ -20,7 +20,12 @@ export type AIState =
 
 export type FormationType = 'LINE' | 'DOUBLE_LINE' | 'COMPACT';
 export type Order = 'MOVE' | 'HOLD' | 'ADVANCE' | 'REGROUP' | 'DEESCALATE';
-export type AnimType = 'NONE' | 'BATON' | 'PUSH' | 'HIT' | 'PUNCH';
+export type AnimType = 'NONE' | 'BATON' | 'PUSH' | 'HIT' | 'PUNCH' | 'THROW' | 'DODGE';
+
+// Vai tro nguoi bieu tinh
+export const ROLE_MELEE = 0;
+export const ROLE_THROWER = 1;
+export const ROLE_FLANKER = 2;
 
 export interface Vec2 {
   x: number;
@@ -73,6 +78,20 @@ export interface Unit {
   path: Vec2[];
   pathT: number;
   target: number;
+  // vai tro + nem do vat
+  role: number;
+  throwCd: number;
+  ammoMolo: number;
+  ammo: number; // so lan nem da/chai con lai
+  flankSide: number;
+  calmed: boolean;
+  // canh sat: ne tranh
+  dodgeT: number;
+  dodgeX: number;
+  dodgeZ: number;
+  burn: number;
+  pending: boolean; // dang cho dot tiep vien
+  spawnAt: number;
   // police
   slot: number;
   // chien dau / hoat anh
@@ -110,6 +129,8 @@ export interface Squad {
   slotError: number;
   alert: string;
   aliveCount: number;
+  alertT: number;
+  stamina: number; // the luc trung binh (0..100) // che do san sang ne (lenh Dodge)
 }
 
 export interface Group {
@@ -161,6 +182,42 @@ export interface MapData {
   exits: Vec2[]; // 4 loi thoat (cac con pho)
 }
 
+export interface Projectile {
+  active: boolean;
+  kind: number; // 0 da, 1 chai, 2 molotov
+  sx: number;
+  sz: number;
+  tx: number;
+  tz: number;
+  t: number;
+  dur: number;
+  arc: number;
+  thrower: number;
+  spin: number;
+}
+
+export interface FireZone {
+  active: boolean;
+  x: number;
+  z: number;
+  r: number;
+  t: number;
+  dur: number;
+}
+
+export interface FxEvent {
+  x: number;
+  z: number;
+  t: number;
+  kind: 'block' | 'hit' | 'glass' | 'burst' | 'dodge';
+}
+
+export interface SimEvent {
+  type: 'throw' | 'block' | 'hit' | 'glass' | 'fire' | 'dodge' | 'wave';
+  x: number;
+  z: number;
+}
+
 export interface StrikeEvent {
   x: number;
   z: number;
@@ -180,6 +237,13 @@ export interface Stats {
   peakForce: number;
   forceSum: number;
   forceSamples: number;
+  thrown: number;
+  molotovs: number;
+  projHits: number;
+  blocked: number;
+  dodged: number;
+  fireZones: number;
+  burnSeconds: number;
 }
 
 export interface Metrics {
@@ -212,10 +276,19 @@ export interface WorldConfig {
   groups: number;
   civilians: number;
   seed: number;
+  groupSizes: number[];
+  waveTimes: number[]; // 0 = co mat tu dau; > 0 = tiep vien den luc do (giay)
 }
 
-export const SLICE_CONFIG: WorldConfig = { squads: 2, groups: 1, civilians: 0, seed: 7 };
-export const MVP_CONFIG: WorldConfig = { squads: 3, groups: 3, civilians: 10, seed: 7 };
+export const SLICE_CONFIG: WorldConfig = { squads: 2, groups: 1, civilians: 0, seed: 7, groupSizes: [10], waveTimes: [0] };
+export const MVP_CONFIG: WorldConfig = {
+  squads: 3,
+  groups: 5,
+  civilians: 10,
+  seed: 7,
+  groupSizes: [13, 13, 13, 13, 13],
+  waveTimes: [0, 0, 0, 55, 120],
+};
 
 export interface World {
   config: WorldConfig;
@@ -229,6 +302,11 @@ export interface World {
   nav: NavGrid;
   hash: SpatialHash;
   strikes: StrikeEvent[];
+  projectiles: Projectile[];
+  fires: FireZone[];
+  fx: FxEvent[];
+  events: SimEvent[];
+  alert: { text: string; t: number } | null;
   metrics: Metrics;
   status: GameStatus;
   result: ResultStats | null;

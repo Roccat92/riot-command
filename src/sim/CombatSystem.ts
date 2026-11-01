@@ -1,4 +1,5 @@
 // CombatSystem: dun khien va vung dui cui truu tuong (khong mau me), phan ung trung don, mat kha nang chien dau.
+import { TUNE } from './tuning';
 import {
   CIVILIAN,
   POLICE,
@@ -35,7 +36,8 @@ export function canPoliceTarget(order: Order, provoked: boolean, target: Pick<Un
   return target.state === 'APPROACH' || target.state === 'ENGAGE' || provoked;
 }
 
-function applyDamage(w: World, victim: Unit, dmg: number): void {
+export const DBGC = { strike: 0, engage: 0 };
+export function applyDamage(w: World, victim: Unit, dmg: number): void {
   if (!isAlive(victim)) return;
   const before = victim.health;
   victim.health = Math.max(0, victim.health - dmg);
@@ -107,8 +109,9 @@ function strike(w: World, a: Unit, t: Unit, kind: 'baton' | 'push'): void {
     const od = Math.hypot(o.x - t.x, o.z - t.z);
     if (o.team === RIOTER && od < 8 && kind === 'baton') o.agitation = clamp(o.agitation + 0.2, 0, 1);
     // thiet hai phu: dan thuong dung gan diem tac dong
-    if (o.team === CIVILIAN && od < 1.8) {
-      applyDamage(w, o, kind === 'baton' ? 5 : 2);
+    if (o.team === CIVILIAN && od < 1.3) {
+      DBGC.strike += kind === 'baton' ? 3 : 1;
+      applyDamage(w, o, kind === 'baton' ? 3 : 1);
       st.collateral++;
       m.force = clamp(m.force + 1, 0, 100);
     }
@@ -129,7 +132,7 @@ function rioterHit(w: World, r: Unit, p: Unit): void {
   if (sq.order === 'HOLD') f *= 0.8;
   if (sq.order === 'DEESCALATE') f *= 0.85;
   const coh = 1 - 0.3 * (p.cohesion / 100);
-  applyDamage(w, p, 10 * f * coh);
+  applyDamage(w, p, TUNE.punch * f * coh);
   p.morale = clamp(p.morale - 2.5, 0, 100);
   p.provoked = 3;
   p.anim = 'HIT';
@@ -184,7 +187,8 @@ export function updateCombat(w: World, dt: number): void {
           const c = units[j];
           if (c.team === CIVILIAN && isAlive(c) && Math.hypot(c.x - u.x, c.z - u.z) < 2.6) {
             const before = c.health;
-            applyDamage(w, c, 4 * dt);
+            DBGC.engage += 1.5 * dt;
+            applyDamage(w, c, 1.5 * dt);
             if (before > 0 && Math.floor(before / 10) !== Math.floor(c.health / 10)) w.metrics.stats.collateral++;
           }
         }

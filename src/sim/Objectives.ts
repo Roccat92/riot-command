@@ -13,7 +13,7 @@ const STATE_WEIGHT: Record<AIState, number> = {
   DOWN: 0,
 };
 
-export const CIVILIAN_HARM_LIMIT = 2.0;
+export const CIVILIAN_HARM_LIMIT = 2.5;
 
 export function computeSafety(harm: number, hasCivilians: boolean): number {
   if (!hasCivilians) return 100;
@@ -22,7 +22,7 @@ export function computeSafety(harm: number, hasCivilians: boolean): number {
 
 export function ratingFor(safety: number, avgForce: number, policeFrac: number, time = 150): string {
   const score = safety * 0.35 + clamp(100 - avgForce * 1.5, 0, 100) * 0.3 + policeFrac * 100 * 0.2 + (1 - time / 300) * 15;
-  return score >= 85 ? 'S' : score >= 70 ? 'A' : score >= 55 ? 'B' : 'C';
+  return score >= 85 ? 'S' : score >= 70 ? 'A' : score >= 55 ? 'B' : score >= 40 ? 'C' : 'D';
 }
 
 export function updateObjectives(w: World, dt: number): void {
@@ -30,6 +30,7 @@ export function updateObjectives(w: World, dt: number): void {
   const m = w.metrics;
   const st = m.stats;
   let hostile = 0;
+  let pending = 0;
   let wSum = 0;
   let totalR = 0;
   let harm = 0;
@@ -43,6 +44,7 @@ export function updateObjectives(w: World, dt: number): void {
     if (u.team === RIOTER) {
       totalR++;
       if (u.exited) evacR++;
+      if (u.pending) pending++;
       if (isAlive(u)) {
         if (isThreatState(u.state)) hostile++;
         wSum += STATE_WEIGHT[u.state];
@@ -59,7 +61,7 @@ export function updateObjectives(w: World, dt: number): void {
       }
     }
   }
-  m.hostile = hostile;
+  m.hostile = hostile + pending; // dot tiep vien chua den van tinh la moi de doa
   st.rioterDispersed = evacR;
   st.civiliansEvacuated = evacC;
   const frac = totalR ? wSum / totalR : 0;
@@ -71,7 +73,7 @@ export function updateObjectives(w: World, dt: number): void {
   m.safety = computeSafety(harm, civs > 0);
   m.stats.forceSum += m.force;
   m.stats.forceSamples++;
-  m.clearTimer = hostile === 0 ? m.clearTimer + dt : 0;
+  m.clearTimer = hostile === 0 && pending === 0 ? m.clearTimer + dt : 0;
   m.lowStabilityTimer = m.stability < 12 ? m.lowStabilityTimer + dt : 0;
   const eff = policeTotal ? effSum / policeTotal : 0;
 

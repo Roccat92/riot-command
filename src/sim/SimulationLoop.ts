@@ -1,7 +1,8 @@
 // SimulationLoop: buoc co dinh (fixed timestep) cho AI/gameplay, tach khoi vong lap render.
 import { updateCombat } from './CombatSystem';
 import { updateCrowdAI } from './CrowdAI';
-import { createWorld, initialAssign } from './GameWorld';
+import { createWorld, initialAssign, updateWaves } from './GameWorld';
+import { updateProjectiles } from './ProjectileSystem';
 import { updateMovement } from './MovementSystem';
 import { updateObjectives } from './Objectives';
 import { updatePoliceIntent, updateSquads } from './SquadController';
@@ -14,11 +15,13 @@ export function stepWorld(w: World, dt = STEP): void {
   if (w.status !== 'playing') return;
   w.time += dt;
   w.tick++;
+  updateWaves(w);
   updateSquads(w, dt);
   updateCrowdAI(w, dt);
   updatePoliceIntent(w, dt);
   updateMovement(w, dt);
   updateCombat(w, dt);
+  updateProjectiles(w, dt);
   updateObjectives(w, dt);
 }
 

@@ -1,6 +1,8 @@
 // SquadController: lenh cho squad (di chuyen, doi hinh, Hold/Advance/Regroup/De-escalate) va y dinh cua tung canh sat.
 import { assignSlots, formationSlots, slotToWorld } from './FormationSystem';
 import { setGoal } from './MovementSystem';
+import { TUNE } from './tuning';
+import { inFire } from './ProjectileSystem';
 import {
   POLICE,
   RIOTER,
@@ -98,6 +100,7 @@ export function orderMove(w: World, squads: Squad[], x: number, z: number): void
   }
 }
 
+let wRef: World;
 function moveAnchor(s: Squad, speed: number, dt: number): void {
   if (s.pathIdx >= s.path.length) {
     s.dest = null;
@@ -112,7 +115,8 @@ function moveAnchor(s: Squad, speed: number, dt: number): void {
     const err = angleDiff(s.heading, want);
     const turn = 2.2 * dt;
     s.heading += clamp(err, -turn, turn);
-    const f = clamp(1 - Math.abs(err) / 1.3, 0.1, 1) * clamp(1.15 - s.slotError / 3.5, 0.2, 1);
+    const ahead = inFire(wRef, s.cx + Math.sin(s.heading) * 3.5, s.cz + Math.cos(s.heading) * 3.5, 2.0);
+    const f = clamp(1 - Math.abs(err) / 1.3, 0.1, 1) * clamp(1.15 - s.slotError / 3.5, 0.2, 1) * (ahead ? 0.2 : 1) * (s.formation === 'COMPACT' ? 0.8 : 1);
     const step = speed * f * dt;
     if (d <= step) {
       s.cx = wp.x;
@@ -142,6 +146,7 @@ function nearestRioter(w: World, x: number, z: number, threatOnly: boolean, maxD
 }
 
 export function updateSquads(w: World, dt: number): void {
+  wRef = w;
   for (const s of w.squads) {
     const us = activeOf(w, s);
     if (us.length !== s.aliveCount) reassignSlots(w, s);
@@ -191,7 +196,7 @@ export function updateSquads(w: World, dt: number): void {
       }
       default: {
         // HOLD / DEESCALATE: dung yen, quay mat ve phia dam dong gan nhat
-        const t = nearestRioter(w, s.cx, s.cz, false, 30);
+        const t = nearestRioter(w, s.cx, s.cz, true, 34) ?? nearestRioter(w, s.cx, s.cz, false, 30);
         if (t) {
           const err = angleDiff(s.heading, Math.atan2(t.x - s.cx, t.z - s.cz));
           s.heading += clamp(err, -1.0 * dt, 1.0 * dt);
@@ -209,7 +214,9 @@ export function updatePoliceIntent(w: World, dt: number): void {
     const us = activeOf(w, s);
     const slots = formationSlots(s.formation, us.length);
     let errSum = 0;
+    let stamSum = 0;
     for (const u of us) {
+      stamSum += u.stamina;
       const sl = slots[Math.min(u.slot < 0 ? 0 : u.slot, slots.length - 1)];
       slotToWorld(s.cx, s.cz, s.heading, sl, tmpV);
       const dx = tmpV.x - u.x;
@@ -219,7 +226,8 @@ export function updatePoliceIntent(w: World, dt: number): void {
       const stamF = 0.6 + 0.4 * (u.stamina / 100);
       const base = Math.max(s.order === 'ADVANCE' ? 2.2 : 3.0, 2.0);
       const maxS = (base * 1.3 + clamp(err, 0, 1.5) * 1.3) * stamF;
-      setGoal(u, tmpV.x, tmpV.z, maxS, 1.0);
+      if (u.dodgeT > 0) setGoal(u, u.dodgeX, u.dodgeZ, 6.0, 0.3);
+      else setGoal(u, tmpV.x, tmpV.z, maxS, 1.0);
       // huong mat
       u.face = s.heading;
       if (u.target >= 0) {
@@ -228,7 +236,7 @@ export function updatePoliceIntent(w: World, dt: number): void {
       }
       // the luc
       const moving = u.speed > 1.2;
-      if (moving) u.stamina -= (s.order === 'ADVANCE' ? 2.2 : 1.4) * dt;
+      if (moving) u.stamina -= (s.order === 'ADVANCE' ? TUNE.advDrain : 1.4) * dt;
       else u.stamina += (s.order === 'HOLD' || s.order === 'REGROUP' || s.order === 'DEESCALATE' ? 6 : 3.5) * dt;
       u.stamina = clamp(u.stamina, 0, 100);
       // gan ket (cohesion)
@@ -237,6 +245,7 @@ export function updatePoliceIntent(w: World, dt: number): void {
       u.cohesion += (target - u.cohesion) * Math.min(1, rate * dt);
       if (s.order === 'REGROUP' && u.target < 0) u.morale = Math.min(95, u.morale + 2.2 * dt);
     }
+    s.stamina = us.length ? stamSum / us.length : 0;
     s.slotError += ((us.length ? errSum / us.length : 0) - s.slotError) * Math.min(1, dt * 3);
   }
 }

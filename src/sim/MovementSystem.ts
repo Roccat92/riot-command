@@ -49,6 +49,56 @@ export function exitGoal(w: World, idx: number): Vec2 {
   return horizontal ? { x: e.x + Math.sign(e.x) * 4, z: e.z } : { x: e.x, z: e.z + Math.sign(e.z) * 4 + 0 * l };
 }
 
+/** Tranh vung lua: dang o trong thi chay ra, o gan thi lai vong. Ap dung cho moi phe. */
+export function avoidFires(w: World, u: Unit): boolean {
+  for (const f of w.fires) {
+    if (!f.active) continue;
+    const dx = u.x - f.x;
+    const dz = u.z - f.z;
+    const d = Math.hypot(dx, dz) || 1e-3;
+    if (d < f.r + 0.15) {
+      // dang trong lua: chay ra phia ngoai gan nhat
+      const s = u.team === POLICE ? 4.4 : 4.0;
+      u.dvx = (dx / d) * s;
+      u.dvz = (dz / d) * s;
+      return true;
+    }
+  }
+  const sp = Math.hypot(u.dvx, u.dvz);
+  if (sp < 0.2) return false;
+  const dx = u.dvx / sp;
+  const dz = u.dvz / sp;
+  const look = 3.2;
+  let ax = 0;
+  let az = 0;
+  for (const f of w.fires) {
+    if (!f.active) continue;
+    const cx = u.x - f.x;
+    const cz = u.z - f.z;
+    const r = f.r + 1.0;
+    const t = clampT(((f.x - u.x) * dx + (f.z - u.z) * dz) / look);
+    const ddx = u.x + dx * look * t - f.x;
+    const ddz = u.z + dz * look * t - f.z;
+    const dd = Math.hypot(ddx, ddz);
+    if (dd < r) {
+      const side = dx * cz - dz * cx >= 0 ? 1 : -1;
+      const k = (1 - dd / r) * 2.4;
+      ax += -dz * side * k;
+      az += dx * side * k;
+    }
+  }
+  if (ax || az) {
+    u.dvx += ax * sp;
+    u.dvz += az * sp;
+    const s2 = Math.hypot(u.dvx, u.dvz);
+    if (s2 > sp) {
+      u.dvx = (u.dvx / s2) * sp;
+      u.dvz = (u.dvz / s2) * sp;
+    }
+  }
+  return false;
+}
+
 /** Ne vat can: lech van toc mong muon neu co vat can phia truoc. */
 export function avoidObstacles(w: World, u: Unit): void {
   const sp = Math.hypot(u.dvx, u.dvz);
@@ -144,6 +194,7 @@ export function updateMovement(w: World, dt: number): void {
     }
     u.downT = Math.max(0, u.downT - dt * 3);
     avoidObstacles(w, u);
+    avoidFires(w, u);
     const a = Math.min(1, dt * (u.team === POLICE ? 7 : 5));
     u.vx += (u.dvx - u.vx) * a;
     u.vz += (u.dvz - u.vz) * a;
