@@ -148,7 +148,7 @@ export function spawnProjectile(w: World, thrower: Unit, kind: number, tx: numbe
 }
 
 export function chooseKind(w: World, u: Unit): number {
-  if (u.ammoMolo > 0 && w.time > 40 && u.agitation > 0.65 && w.rng() < 0.4) return KIND_MOLOTOV;
+  if (u.ammoMolo > 0 && w.time > 40 && u.agitation > 0.65 && w.rng() < TUNE.moloRate) return KIND_MOLOTOV;
   return w.rng() < 0.5 ? KIND_BOTTLE : KIND_STONE;
 }
 

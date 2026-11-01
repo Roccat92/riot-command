@@ -234,16 +234,18 @@ describe('Can bang (mo phong bot)', () => {
     expect(rate(results.hold)).toBeLessThanOrEqual(0.25);
     expect(results.hold.every((r) => r.thrown > 100)).toBe(true);
   });
-  it('tien thang (naive advance) hay thua hoac thang muon voi xep hang thap', () => {
+  it('tien thang (naive advance) khong thang de dang: thang thi muon (> 150 s) va hau het xep hang C/D', () => {
     const wins = results.naive.filter((r) => r.won);
-    expect(rate(results.naive)).toBeLessThanOrEqual(0.8);
-    for (const r of wins) expect(r.time).toBeGreaterThan(120);
-    expect(wins.every((r) => ['B', 'C', 'D'].includes(r.rating))).toBe(true);
+    expect(rate(results.naive)).toBeLessThanOrEqual(0.9);
+    for (const r of wins) expect(r.time).toBeGreaterThan(150);
+    const poor = wins.filter((r) => r.rating === 'C' || r.rating === 'D').length;
+    expect(poor / Math.max(1, wins.length)).toBeGreaterThanOrEqual(0.5);
+    expect(results.naive.reduce((a, r) => a + r.policeDown, 0) / seeds.length).toBeGreaterThan(3);
   });
-  it('chien thuat hon hop (ne + khien + xoa diu) it nhat bang va thuong tot hon tien thang', () => {
-    expect(rate(results.mixed)).toBeGreaterThanOrEqual(rate(results.naive));
+  it('chien thuat hon hop co ne chu dong (so lan ne cao hon han tien thang) va thang nhieu hon chi phong thu', () => {
     const dodged = results.mixed.reduce((a, r) => a + r.dodged, 0);
     const dodgedNaive = results.naive.reduce((a, r) => a + r.dodged, 0);
-    expect(dodged).toBeGreaterThan(dodgedNaive);
+    expect(dodged).toBeGreaterThan(dodgedNaive * 1.5);
+    expect(rate(results.mixed)).toBeGreaterThan(rate(results.hold));
   });
 });

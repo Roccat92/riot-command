@@ -343,7 +343,7 @@ export function createWorld(config: WorldConfig): World {
       const roll = rng();
       u.role = roll < throwerFrac[g] ? ROLE_THROWER : roll < throwerFrac[g] + flankerFrac[g] ? ROLE_FLANKER : ROLE_MELEE;
       u.ammo = u.role === ROLE_THROWER ? Math.round(TUNE.ammo * (0.7 + rng() * 0.6)) : u.role === ROLE_FLANKER ? 2 : 0;
-      u.ammoMolo = u.role === ROLE_THROWER && rng() < TUNE.molo ? 1 : 0;
+      u.ammoMolo = u.role === ROLE_THROWER && rng() < TUNE.molo ? TUNE.moloAmmo : 0;
       if (wave > 0) {
         u.active = false;
         u.pending = true;

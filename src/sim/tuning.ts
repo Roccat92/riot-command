@@ -11,6 +11,8 @@ export const TUNE = {
   moloHit: 20, // sat thuong molotov trung truc tiep
   autoDodge: 0, // xac suat tu ne molotov khi chua ra lenh Dodge (0 = phai ra lenh hoac co hang khien)
   molo: 1.0, // ti le nguoi nem co 1 molotov
+  moloAmmo: 1, // so molotov moi nguoi nem co molotov
+  moloRate: 0.4, // xac suat moi lan nem la molotov khi con molotov
   ammo: 12, // so da/chai trung binh moi nguoi nem (het thi phai xong vao can chien)
   advDrain: 2.4, // hao the luc moi giay khi ADVANCE
 };
