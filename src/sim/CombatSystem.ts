@@ -179,7 +179,7 @@ export function updateCombat(w: World, dt: number): void {
       }
     } else if (u.team === RIOTER && u.state === 'ENGAGE') {
       const p = u.target >= 0 ? units[u.target] : null;
-      if (p && isAlive(p) && p.team === POLICE && Math.hypot(p.x - u.x, p.z - u.z) < 1.5 && u.atkCd <= 0) rioterHit(w, u, p);
+      if (p && isAlive(p) && p.team === POLICE && Math.hypot(p.x - u.x, p.z - u.z) < 1.5 && u.atkCd <= 0 && u.knock <= 0 && u.stun <= 0) rioterHit(w, u, p);
       // thiet hai phu: dan thuong dung gan tran giao tranh
       if (p) {
         hash.query(u.x, u.z, 2.6, near);

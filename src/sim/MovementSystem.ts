@@ -186,8 +186,9 @@ export function updateMovement(w: World, dt: number): void {
     u.pz = u.z;
     u.pheading = u.heading;
     const knockDecay = Math.exp(-4.5 * dt);
-    if (u.state === 'DOWN') {
+    if (u.state === 'DOWN' || u.knock > 0) {
       u.vx = u.vz = 0;
+      u.dvx = u.dvz = 0;
       u.x += u.kx * dt;
       u.z += u.kz * dt;
       u.kx *= knockDecay;
@@ -199,6 +200,16 @@ export function updateMovement(w: World, dt: number): void {
     u.downT = Math.max(0, u.downT - dt * 3);
     avoidObstacles(w, u);
     avoidFires(w, u);
+    if (u.stun > 0 || u.cough > 0) {
+      const f = (u.stun > 0 ? u.stunK : 1) * (u.cough > 0 ? 0.6 : 1);
+      u.dvx *= f;
+      u.dvz *= f;
+      if (u.stun > 0 && u.stunK < 0.2) {
+        // luu dan choang: lao dao, di loang choang
+        u.dvx += Math.sin(w.time * 5 + u.id) * 0.8;
+        u.dvz += Math.cos(w.time * 4 + u.id * 1.7) * 0.8;
+      }
+    }
     const a = Math.min(1, dt * (u.team === POLICE ? 7 : 5));
     u.vx += (u.dvx - u.vx) * a;
     u.vz += (u.dvz - u.vz) * a;
@@ -281,6 +292,24 @@ export function updateMovement(w: World, dt: number): void {
           const pz = hz - Math.abs(dz);
           if (px < pz) u.x = o.x + Math.sign(dx || 1) * hx;
           else u.z = o.z + Math.sign(dz || 1) * hz;
+        }
+      }
+    }
+    const tk = w.truck;
+    if (tk.active) {
+      const hx = Math.sin(tk.heading);
+      const hz = Math.cos(tk.heading);
+      for (let k = -1; k <= 1; k++) {
+        const cx = tk.x + hx * 1.5 * k;
+        const cz = tk.z + hz * 1.5 * k;
+        const dx = u.x - cx;
+        const dz = u.z - cz;
+        const r = 1.3 + UNIT_R;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < r * r) {
+          const d = Math.sqrt(d2) || 1e-4;
+          u.x = cx + (dx / d) * r;
+          u.z = cz + (dz / d) * r;
         }
       }
     }

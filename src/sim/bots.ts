@@ -1,6 +1,7 @@
 // Bot chien thuat dung de can bang va kiem thu (khong dung trong game that).
 import { createWorld, initialAssign } from './GameWorld';
 import { KIND_MOLOTOV, triggerDodge } from './ProjectileSystem';
+import { orderTruckMove, useFlash, useGas, useLrad } from './ToolsSystem';
 import { orderMove, setFormation, setOrder } from './SquadController';
 import { STEP, stepWorld } from './SimulationLoop';
 import { MVP_CONFIG, RIOTER, isAlive, isThreatState, type World, type WorldConfig } from './types';
@@ -169,5 +170,76 @@ export function runGame(bot: Bot, seed: number, cfg: WorldConfig = MVP_CONFIG, m
     safety: w.metrics.safety,
     avgForce: r?.avgForce ?? 0,
     stats: { ...st },
+  };
+}
+
+// ---------- bot dung trang bi moi (xe voi rong, hoi cay, luu dan, LRAD) ----------
+function densest(w: World, from: { x: number; z: number }, lo: number, hi: number, rad: number): { x: number; z: number; n: number } | null {
+  const hot = w.units.filter((u) => u.team === RIOTER && isAlive(u) && isThreatState(u.state) && u.stun <= 0);
+  let best: { x: number; z: number; n: number } | null = null;
+  for (const c of hot) {
+    const d = Math.hypot(c.x - from.x, c.z - from.z);
+    if (d < lo || d > hi) continue;
+    let n = 0;
+    let sx = 0;
+    let sz = 0;
+    for (const o of hot) if ((o.x - c.x) ** 2 + (o.z - c.z) ** 2 < rad * rad) {
+      n++;
+      sx += o.x;
+      sz += o.z;
+    }
+    if (!best || n > best.n) best = { x: sx / n, z: sz / n, n };
+  }
+  return best;
+}
+
+/** Bao boc mot bot co san: bat xe voi rong tu dong va dung hoi cay / luu dan / LRAD dung luc. */
+export function withTools(base: Bot): Bot {
+  return (w) => {
+    base(w);
+    if (w.time < 2) return;
+    const t = w.truck;
+    if (t.active && t.hp > 0) {
+      t.auto = true;
+      if (!t.dest && !t.refilling && t.water > 25) {
+        // di theo hang canh sat, giu o phia sau 5-8 m
+        const tgt = w.squads.filter((s) => s.aliveCount > 0).sort((a, b) => a.cz - b.cz)[0];
+        if (tgt) {
+          const gx = Math.max(-18, Math.min(18, tgt.cx));
+          const gz = Math.min(26, tgt.cz + 7);
+          if (Math.hypot(t.x - gx, t.z - gz) > 6) orderTruckMove(w, gx, gz);
+        }
+      }
+    }
+    for (const s of w.squads) {
+      if (s.aliveCount <= 0) continue;
+      const near = w.units.filter((u) => u.team === RIOTER && isAlive(u) && isThreatState(u.state) && Math.hypot(u.x - s.cx, u.z - s.cz) < 9);
+      if (s.flash > 0 && s.eqCd <= 0 && near.length >= 3) {
+        const cx = near.reduce((a, u) => a + u.x, 0) / near.length;
+        const cz = near.reduce((a, u) => a + u.z, 0) / near.length;
+        useFlash(w, s.id, cx, cz);
+      }
+      if (s.gas > 0 && s.eqCd <= 0) {
+        const c = densest(w, { x: s.cx, z: s.cz }, 8, 26, 4.5);
+        if (c && c.n >= 5) useGas(w, s.id, c.x, c.z);
+      }
+      if (s.lradCd <= 0 && !w.lrad.active) {
+        const c = densest(w, { x: s.cx, z: s.cz }, 8, 24, 8);
+        if (c && c.n >= 9) useLrad(w, s.id, c.x, c.z);
+      }
+    }
+  };
+}
+
+/** Tat het trang bi moi (de so sanh voi ban cu): xe vo hieu hoa, khong co dan. */
+export function withoutTools(base: Bot): Bot {
+  return (w) => {
+    if (w.truck.active) w.truck.active = false;
+    for (const s of w.squads) {
+      s.gas = 0;
+      s.flash = 0;
+      s.lradCd = 1e9;
+    }
+    base(w);
   };
 }

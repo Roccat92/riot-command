@@ -229,6 +229,7 @@ function updateRioter(w: World, u: Unit, dt: number, force: number, squads: Worl
   if (g.agitation > u.agitation) da += 0.3 * (g.agitation - u.agitation) * (0.4 + 0.6 * (u.cohesion / 100));
   if (!calmed && !fleeing) da += 0.015 * Math.min(hot, 5); // dam dong hung han keo nguoi xung quanh
   if (calmed) da -= 0.14;
+  if (u.cough > 0) da -= 0.3;
   if (u.morale < 40) da -= 0.02;
   if (fleeing) da = -0.05;
   u.agitation = clamp(u.agitation + da * dt, 0, 1);

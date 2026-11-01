@@ -21,7 +21,14 @@ import {
 export const KIND_STONE = 0;
 export const KIND_BOTTLE = 1;
 export const KIND_MOLOTOV = 2;
-export const HIT_R = [1.0, 1.15, 1.0];
+export const KIND_GAS = 3;
+export const KIND_FLASH = 4;
+export const HIT_R = [1.0, 1.15, 1.0, 0, 0];
+/** Cau noi toi ToolsSystem (tranh import vong): detonate dan hoi cay / luu dan choang. */
+export const hooks: { detonate: (w: World, p: Projectile) => void; scorch: (w: World, f: FireZone) => void } = {
+  detonate: () => undefined,
+  scorch: () => undefined,
+};
 export const FIRE_R = 2.4;
 export const THROW_MIN = 5;
 export const THROW_MAX = 26;
@@ -50,13 +57,64 @@ function poolGet<T extends { active: boolean }>(arr: T[]): T | null {
   return null;
 }
 
-function pushEvent(w: World, type: 'throw' | 'block' | 'hit' | 'glass' | 'fire' | 'dodge' | 'wave', x: number, z: number): void {
+function pushEvent(w: World, type: 'throw' | 'block' | 'hit' | 'glass' | 'fire' | 'dodge' | 'wave' | 'truckhit', x: number, z: number): void {
   w.events.push({ type, x, z });
   if (w.events.length > 64) w.events.shift();
 }
 function pushFx(w: World, x: number, z: number, kind: 'block' | 'hit' | 'glass' | 'burst' | 'dodge'): void {
   w.fx.push({ x, z, t: w.time, kind });
   if (w.fx.length > 48) w.fx.shift();
+}
+
+/** Sat thuong len xe voi rong (da/chai/molotov/lua). */
+export function damageTruck(w: World, dmg: number, fire = false): void {
+  const t = w.truck;
+  if (!t.active || t.hp <= 0) return;
+  t.hp = Math.max(0, t.hp - dmg);
+  w.metrics.stats.truckDamage += dmg;
+  if (!fire) pushEvent(w, 'truckhit', t.x, t.z);
+  if (t.hp <= 0) {
+    t.firing = false;
+    t.jet = 0;
+    t.dest = null;
+    t.burnT = 99;
+    w.messages.push('Xe vòi rồng bị phá hủy!');
+  }
+}
+
+export function launchPolice(w: World, s: Squad, kind: number, tx: number, tz: number): Projectile | null {
+  const p = poolGet(w.projectiles);
+  if (!p) return null;
+  // nguoi nem: lay mot don vi con song gan huong nem nhat
+  let who: Unit | null = null;
+  let bd = 1e9;
+  for (const u of w.units) {
+    if (u.team !== POLICE || u.group !== s.id || !isAlive(u)) continue;
+    const d = (u.x - tx) ** 2 + (u.z - tz) ** 2;
+    if (d < bd) {
+      bd = d;
+      who = u;
+    }
+  }
+  if (!who) return null;
+  const dist = Math.hypot(tx - who.x, tz - who.z);
+  p.active = true;
+  p.kind = kind;
+  p.sx = who.x;
+  p.sz = who.z;
+  p.tx = tx;
+  p.tz = tz;
+  p.t = 0;
+  p.dur = Math.max(0.6, dist / 17);
+  p.arc = 2.2 + dist * 0.16;
+  p.thrower = -1;
+  p.spin = w.rng() * 6;
+  who.anim = 'THROW';
+  who.animDur = 0.5;
+  who.animT = 0.5;
+  who.face = Math.atan2(tx - who.x, tz - who.z);
+  pushEvent(w, 'throw', who.x, who.z);
+  return p;
 }
 
 export function spawnFire(w: World, x: number, z: number): FireZone | null {
@@ -87,6 +145,7 @@ export function triggerDodge(_w: World, s: Squad): void {
 }
 
 function planDodges(w: World, p: Projectile): void {
+  if (p.kind >= KIND_GAS) return;
   const molotov = p.kind === KIND_MOLOTOV;
   const danger = molotov ? FIRE_R + 0.9 : 1.5;
   const thrower = w.units[p.thrower];
@@ -167,6 +226,25 @@ export function tryThrow(w: World, u: Unit, target: Unit | null): boolean {
   const d = Math.hypot(dx, dz);
   if (d < THROW_MIN || d > THROW_MAX) return false;
   const kind = u.ammo > 0 ? chooseKind(w, u) : KIND_MOLOTOV;
+  // mot so nguoi nham vao xe voi rong (muc tieu lon, de nem trung)
+  const tr = w.truck;
+  let aimX = target.x;
+  let aimZ = target.z;
+  let aimVx = target.vx;
+  let aimVz = target.vz;
+  let truckShot = false;
+  if (tr.active && tr.hp > 0 && u.agitation > 0.55) {
+    const dtk = Math.hypot(tr.x - u.x, tr.z - u.z);
+    const pull = tr.jet > 0.3 ? TUNE.truckAggro * 2.2 : TUNE.truckAggro;
+    if (dtk >= THROW_MIN && dtk <= THROW_MAX && w.rng() < pull) {
+      aimX = tr.x;
+      aimZ = tr.z;
+      aimVx = 0;
+      aimVz = 0;
+      truckShot = true;
+    }
+  }
+  void truckShot;
   if (kind !== KIND_MOLOTOV) u.ammo--;
   // do chinh xac: sai so tang theo khoang cach, nong tinh qua cao nem lech hon
   const err = 0.8 + d * 0.07 + (u.agitation > 0.9 ? 0.5 : 0);
@@ -174,15 +252,17 @@ export function tryThrow(w: World, u: Unit, target: Unit | null): boolean {
   const r = Math.sqrt(w.rng()) * err;
   // nham ve phia truoc muc tieu mot chut neu muc tieu dang di chuyen
   const lead = 0.5;
-  const tx = target.x + target.vx * lead + Math.cos(a) * r;
-  const tz = target.z + target.vz * lead + Math.sin(a) * r;
+  const tx = aimX + aimVx * lead + Math.cos(a) * r;
+  const tz = aimZ + aimVz * lead + Math.sin(a) * r;
   if (!spawnProjectile(w, u, kind, tx, tz)) return false;
   if (kind === KIND_MOLOTOV) u.ammoMolo--;
   u.throwCd = throwCooldown(u.agitation, w.rng()) * (u.role === ROLE_THROWER ? 1 : 2);
   u.anim = 'THROW';
   u.animDur = 0.5;
   u.animT = 0.5;
-  u.face = Math.atan2(dx, dz);
+  u.face = Math.atan2(aimX - u.x, aimZ - u.z);
+  void dx;
+  void dz;
   return true;
 }
 
@@ -190,6 +270,10 @@ const STONE = { h: 2, s: 4, m: 1.5 };
 const BOTTLE = { h: 3, s: 3, m: 3 };
 
 function impact(w: World, p: Projectile): void {
+  if (p.kind >= KIND_GAS) {
+    hooks.detonate(w, p);
+    return;
+  }
   const st = w.metrics.stats;
   const thrower = w.units[p.thrower];
   const r = HIT_R[p.kind];
@@ -230,9 +314,26 @@ function impact(w: World, p: Projectile): void {
     }
   }
   if (p.kind === KIND_BOTTLE) pushFx(w, p.tx, p.tz, 'glass');
+  const tr = w.truck;
+  if (tr.active && tr.hp > 0 && (tr.x - p.tx) ** 2 + (tr.z - p.tz) ** 2 < (molotov ? 3.4 : 2.0) ** 2) {
+    damageTruck(w, molotov ? TUNE.moloTruck : p.kind === KIND_BOTTLE ? 5 : 3);
+    if (molotov) tr.burnT = Math.max(tr.burnT, 6);
+    w.shake = Math.min(1, w.shake + 0.15);
+    pushFx(w, tr.x, tr.z, 'hit');
+  }
   if (molotov) {
     pushFx(w, p.tx, p.tz, 'burst');
     spawnFire(w, p.tx, p.tz);
+    w.shake = Math.min(1, w.shake + 0.12);
+    for (let i = 0; i < w.map.obstacles.length; i++) {
+      const o = w.map.obstacles[i];
+      if (o.kind !== 'box') continue;
+      const dx = Math.max(Math.abs(p.tx - o.x) - o.hw, 0);
+      const dz = Math.max(Math.abs(p.tz - o.z) - o.hd, 0);
+      if (dx * dx + dz * dz < 2.4 * 2.4) {
+        w.burning[i] = Math.max(w.burning[i], o.type === 'van' ? 60 : o.type === 'barrier' ? 38 : 24);
+      }
+    }
   }
 }
 
@@ -251,6 +352,7 @@ export function updateProjectiles(w: World, dt: number): void {
     f.t += dt;
     if (f.t >= f.dur) {
       f.active = false;
+      hooks.scorch(w, f);
       continue;
     }
     for (const u of w.units) {

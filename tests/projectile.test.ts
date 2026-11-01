@@ -197,14 +197,16 @@ describe('Ne (dodge)', () => {
 });
 
 describe('Tiep vien (waves)', () => {
-  it('MVP: 39 nguoi co mat luc dau, 26 nguoi den sau 55 s va 120 s', () => {
+  it('MVP: 39 nguoi co mat luc dau, 34 nguoi den sau 55 s va 120 s', () => {
     const w = make(MVP_CONFIG, 4);
     const act = () => w.units.filter((u) => u.team === RIOTER && u.active).length;
     expect(act()).toBe(39);
     stepN(w, 56);
-    expect(act()).toBeGreaterThanOrEqual(52 - 4);
+    expect(act()).toBeGreaterThanOrEqual((16 + 13 * 3) - 5);
     expect(w.alert?.text).toContain('tiếp viện');
-    stepN(w, 66);
+    w.time = 119.9; // bo qua doan giua (tran co the ket thuc som neu khong ra lenh)
+    w.status = 'playing';
+    stepN(w, 1);
     expect(w.units.some((u) => u.team === RIOTER && u.pending)).toBe(false);
   });
   it('khong thang khi con tiep vien chua den', () => {

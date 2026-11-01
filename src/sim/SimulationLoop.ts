@@ -2,6 +2,7 @@
 import { updateCombat } from './CombatSystem';
 import { updateCrowdAI } from './CrowdAI';
 import { createWorld, initialAssign, updateWaves } from './GameWorld';
+import { updateTools } from './ToolsSystem';
 import { updateProjectiles } from './ProjectileSystem';
 import { updateMovement } from './MovementSystem';
 import { updateObjectives } from './Objectives';
@@ -21,6 +22,7 @@ export function stepWorld(w: World, dt = STEP): void {
   updatePoliceIntent(w, dt);
   updateMovement(w, dt);
   updateCombat(w, dt);
+  updateTools(w, dt);
   updateProjectiles(w, dt);
   updateObjectives(w, dt);
 }

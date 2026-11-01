@@ -90,6 +90,12 @@ export interface Unit {
   dodgeX: number;
   dodgeZ: number;
   burn: number;
+  knock: number; // giay con nam duoi dat (bi voi rong quat ngã)
+  knockDur: number;
+  soak: number; // do uot tich luy (>= nguong thi nga)
+  stun: number; // giay bi choang (flashbang / LRAD)
+  stunK: number; // he so toc do khi bi choang (0..1)
+  cough: number; // giay con ho (hoi cay)
   pending: boolean; // dang cho dot tiep vien
   spawnAt: number;
   // police
@@ -131,6 +137,10 @@ export interface Squad {
   aliveCount: number;
   alertT: number;
   stamina: number; // the luc trung binh (0..100) // che do san sang ne (lenh Dodge)
+  gas: number; // so dan hoi cay con lai
+  flash: number; // so luu dan choang con lai
+  eqCd: number; // thoi gian cho chung cua dan hoi cay / luu dan
+  lradCd: number; // thoi gian cho LRAD
 }
 
 export interface Group {
@@ -205,15 +215,71 @@ export interface FireZone {
   dur: number;
 }
 
+export interface Truck {
+  active: boolean;
+  x: number;
+  z: number;
+  px: number;
+  pz: number;
+  heading: number;
+  hp: number;
+  maxHp: number;
+  water: number;
+  maxWater: number;
+  aimX: number;
+  aimZ: number;
+  firing: boolean; // dang phun
+  auto: boolean; // tu ngam va phun
+  pumpCd: number; // khoa bom sau khi can nuoc
+  dest: Vec2 | null;
+  path: Vec2[];
+  pathIdx: number;
+  refilling: boolean;
+  burnT: number; // dang chay (giay)
+  jet: number; // 0..1 cuong do tia nuoc hien tai (cho renderer)
+  jetEndX: number;
+  jetEndZ: number;
+}
+
+export interface GasCloud {
+  active: boolean;
+  x: number;
+  z: number;
+  r: number;
+  t: number;
+  dur: number;
+  vx: number;
+  vz: number;
+}
+
+export interface Puddle {
+  active: boolean;
+  x: number;
+  z: number;
+  r: number;
+  t: number;
+  dur: number;
+  kind: number; // 0 nuoc, 1 vet chay
+}
+
+export interface LradBeam {
+  active: boolean;
+  x: number;
+  z: number;
+  ang: number;
+  t: number;
+  dur: number;
+}
+
 export interface FxEvent {
   x: number;
   z: number;
   t: number;
-  kind: 'block' | 'hit' | 'glass' | 'burst' | 'dodge';
+  kind: 'block' | 'hit' | 'glass' | 'burst' | 'dodge' | 'splash' | 'flash' | 'gaspop';
 }
 
 export interface SimEvent {
-  type: 'throw' | 'block' | 'hit' | 'glass' | 'fire' | 'dodge' | 'wave';
+  type: 'throw' | 'block' | 'hit' | 'glass' | 'fire' | 'dodge' | 'wave' | 'water' | 'gas' | 'flash' | 'lrad' | 'truckhit' | 'knock';
   x: number;
   z: number;
 }
@@ -244,6 +310,15 @@ export interface Stats {
   dodged: number;
   fireZones: number;
   burnSeconds: number;
+  waterUsed: number;
+  knockdowns: number;
+  extinguished: number;
+  gasUsed: number;
+  flashUsed: number;
+  lradUsed: number;
+  truckDamage: number;
+  gassed: number; // so luot nguoi bieu tinh bi ho vi hoi cay (moi nguoi tinh 1 lan)
+  stunned: number;
 }
 
 export interface Metrics {
@@ -286,7 +361,7 @@ export const MVP_CONFIG: WorldConfig = {
   groups: 5,
   civilians: 10,
   seed: 7,
-  groupSizes: [13, 13, 13, 13, 13],
+  groupSizes: [13, 13, 13, 16, 18],
   waveTimes: [0, 0, 0, 55, 120],
 };
 
@@ -304,6 +379,12 @@ export interface World {
   strikes: StrikeEvent[];
   projectiles: Projectile[];
   fires: FireZone[];
+  truck: Truck;
+  gas: GasCloud[];
+  puddles: Puddle[];
+  lrad: LradBeam;
+  burning: number[]; // thoi gian chay con lai cua tung vat can (xe, rao chan)
+  shake: number; // bien do rung camera (0..1)
   fx: FxEvent[];
   events: SimEvent[];
   alert: { text: string; t: number } | null;
