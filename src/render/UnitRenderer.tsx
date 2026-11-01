@@ -221,11 +221,21 @@ export function UnitRenderer() {
             armRa = -2.6 + 0.4 * Math.sin(t * 12 + u.offA + 1.5);
           }
           if (animating && u.anim === 'PUNCH') armRa = -0.4 - 1.7 * Math.sin(Math.PI * at);
+          if (animating && u.anim === 'THROW') {
+            // vung tay qua dau roi nem ve phia truoc
+            armRa = at < 0.45 ? -0.4 - 2.6 * (at / 0.45) : -3.0 + 3.4 * Math.min(1, (at - 0.45) / 0.3);
+            tilt += 0.28 * Math.sin(Math.PI * Math.min(1, at * 1.3));
+          }
         } else if (u.state === 'PANIC') {
           armLa = -2.7 + 0.3 * Math.sin(t * 10 + u.offA);
           armRa = -2.7 + 0.3 * Math.sin(t * 10 + u.offA + 1);
         }
         if (animating && u.anim === 'HIT') tilt -= 0.38 * Math.sin(Math.PI * at);
+        if (animating && u.anim === 'DODGE') {
+          // lao nguoi sang ben nem tranh
+          tilt += 0.45 * Math.sin(Math.PI * at);
+          y += 0.28 * Math.sin(Math.PI * at);
+        }
       }
       // ma tran goc
       eA.set(tilt, h, 0, 'YXZ');

@@ -3,6 +3,7 @@ import { Canvas } from '@react-three/fiber';
 import { useState } from 'react';
 import { PCFShadowMap } from 'three';
 import { CameraController } from './render/CameraController';
+import { EffectsRenderer } from './render/EffectsRenderer';
 import { InputLayer } from './render/InputLayer';
 import { Overlays } from './render/Overlays';
 import { SimDriver } from './render/SimDriver';
@@ -28,6 +29,7 @@ export default function App() {
         {!FIXED_HIGH && <PerformanceMonitor bounds={() => [24, 50]} onDecline={() => setTier((t) => Math.min(2, t + 1))} flipflops={4} />}
         <WorldScene />
         <UnitRenderer />
+        <EffectsRenderer />
         <Overlays />
         <CameraController />
         <InputLayer />

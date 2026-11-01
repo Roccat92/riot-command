@@ -46,6 +46,8 @@ function TopBar() {
   const speed = useGameStore((s) => s.speed);
   const togglePause = useGameStore((s) => s.togglePause);
   const setSpeed = useGameStore((s) => s.setSpeed);
+  const sfxOn = useGameStore((s) => s.sfxOn);
+  const toggleSfx = useGameStore((s) => s.toggleSfx);
   const left = Math.max(0, hud.limit - hud.time);
   return (
     <div className="topbar">
@@ -80,6 +82,24 @@ function TopBar() {
         <span className="lbl">Dân thường</span>
         <b id="n-civ">{hud.civilians}</b>
       </div>
+      <div className="stat proj" title="Số vật bị ném (đá/chai/molotov) và số vùng lửa đang cháy">
+        <span className="chip red proj-ico">☄</span>
+        <span className="lbl">Ném</span>
+        <b id="n-thrown">{hud.thrown}</b>
+        <span className="lbl">Lửa</span>
+        <b id="n-fires" className={hud.fires ? 'warn' : ''}>
+          {hud.fires}
+        </b>
+        <span className="sub" id="n-blocked">
+          chặn {hud.blocked} · né {hud.dodged}
+        </span>
+      </div>
+      {hud.pending > 0 && (
+        <div className="stat wave" title="Tiếp viện của người biểu tình sắp đến từ các con phố bên">
+          <span className="lbl">Tiếp viện sau</span>
+          <b id="n-wave">{fmtTime(hud.nextWave)}</b>
+        </div>
+      )}
       <div className="meters">
         <Bar label="Stability" value={hud.stability} color="linear-gradient(90deg,#39d98a,#8bf0b3)" />
         <Bar label="An toàn dân thường" value={hud.safety} color="linear-gradient(90deg,#2d9cff,#7cc4ff)" />
@@ -101,6 +121,9 @@ function TopBar() {
         </button>
         <button className={'sq' + (speed === 4 ? ' on' : '')} onClick={() => setSpeed(4)}>
           4x
+        </button>
+        <button className={'sq' + (sfxOn ? ' on' : '')} onClick={toggleSfx} title="Bật / tắt âm thanh">
+          {sfxOn ? '🔊' : '🔈'}
         </button>
       </div>
     </div>
@@ -187,6 +210,7 @@ function SquadPanel() {
   const selection = useGameStore((s) => s.selection);
   const select = useGameStore((s) => s.select);
   const applyOrder = useGameStore((s) => s.applyOrder);
+  const dodge = useGameStore((s) => s.dodge);
   const sel: HudSquad[] = selection.map((i) => hud.squads[i]).filter(Boolean);
   const n = sel.length;
   const agg = (k: 'health' | 'stamina' | 'morale' | 'cohesion') => (n ? (sel.reduce((a, s) => a + s[k], 0) / n) * 100 : 0);
@@ -243,7 +267,28 @@ function SquadPanel() {
             <kbd>{o.key}</kbd>
           </button>
         ))}
+        <button
+          className={'order dodge' + (sel.some((s) => s.dodge) ? ' on' : '')}
+          disabled={n === 0}
+          onClick={() => dodge()}
+          data-order="DODGE"
+          title="Dodge (V): sẵn sàng né vật ném trong 8 giây, tốn thể lực"
+        >
+          <span className="ico">↯</span>
+          <span>Dodge</span>
+          <kbd>V</kbd>
+        </button>
       </div>
+    </div>
+  );
+}
+
+function WaveBanner() {
+  const t = useGameStore((s) => s.hud.waveAlert);
+  if (!t) return null;
+  return (
+    <div className="wave-banner" id="wave-banner">
+      ⚠ {t}
     </div>
   );
 }
@@ -261,7 +306,7 @@ function Help() {
         <kbd>WASD</kbd> pan <kbd>Q</kbd>/<kbd>E</kbd> xoay <kbd>Cuộn</kbd> zoom
       </div>
       <div>
-        <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> đội hình <kbd>Space</kbd> tạm dừng
+        <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> đội hình <kbd>V</kbd> né <kbd>Space</kbd> tạm dừng
       </div>
     </div>
   );
@@ -275,8 +320,8 @@ function Briefing() {
         <div className="eyebrow">NHIỆM VỤ 01</div>
         <h1>RIOT COMMAND</h1>
         <p>
-          Quảng trường Place Fictive (Paris giả tưởng) đang bất ổn. Bạn chỉ huy <b>3 squad cảnh sát chống bạo động (24 người)</b> đối đầu với <b>3 nhóm bạo
-          động (30 người)</b>, xen lẫn khoảng 10 dân thường.
+          Quảng trường Place Fictive (Paris giả tưởng) đang bất ổn. Bạn chỉ huy <b>3 squad cảnh sát chống bạo động (24 người)</b> đối đầu với <b>5 nhóm bạo
+          động (65 người)</b>, xen lẫn khoảng 10 dân thường. Hai nhóm sẽ kéo đến như đợt tiếp viện từ các con phố bên trong 5 phút.
         </p>
         <ul>
           <li>
@@ -285,10 +330,14 @@ function Briefing() {
           <li>
             <b>Thua</b> khi cảnh sát mất khả năng chiến đấu, Stability sụp đổ, thương vong dân thường vượt giới hạn, hoặc hết giờ.
           </li>
+          <li>
+            <b>Bạo động biết ném:</b> đá, chai thủy tinh và <b>molotov</b>. Vòng cảnh báo trên mặt đất cho thấy điểm rơi. Khiên hướng đúng về phía người ném chặn gần hết sát thương
+            (Compact chắn tốt nhất). Molotov tạo vùng lửa cháy 6-8 giây: lính tự tránh lửa, và có thể ra lệnh <kbd>V</kbd> Dodge để né kịp. Xoa dịu (De-escalate) làm họ bớt ném.
+          </li>
           <li>Cảnh sát không bao giờ tự động tấn công dân thường. Dùng vũ lực càng ít càng tốt: mức vũ lực cao làm đám đông giận dữ hơn.</li>
           <li>
             <b>Điều khiển:</b> chuột trái chọn squad (kéo để chọn nhiều), chuột phải di chuyển, <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> Line / Double / Compact,
-            <kbd>H</kbd> Hold, <kbd>F</kbd> Advance, <kbd>R</kbd> Regroup, <kbd>X</kbd> De-escalate, <kbd>WASD</kbd> pan, <kbd>Q</kbd>/<kbd>E</kbd> xoay, cuộn để zoom,
+            <kbd>H</kbd> Hold, <kbd>F</kbd> Advance, <kbd>R</kbd> Regroup, <kbd>X</kbd> De-escalate, <kbd>V</kbd> Dodge, <kbd>WASD</kbd> pan, <kbd>Q</kbd>/<kbd>E</kbd> xoay, cuộn để zoom,
             <kbd>Space</kbd> tạm dừng.
           </li>
         </ul>
@@ -315,6 +364,9 @@ function Results() {
     ['Dân thường sơ tán', st.civiliansEvacuated],
     ['An toàn dân thường', `${Math.round(result.safety)}%`],
     ['Thiệt hại phụ (va chạm)', st.collateral],
+    ['Vật bị ném (molotov)', `${st.thrown} (${st.molotovs})`],
+    ['Khiên chặn / trúng người / né', `${st.blocked} / ${st.projHits} / ${st.dodged}`],
+    ['Vùng lửa / giây lính bị cháy', `${st.fireZones} / ${Math.round(st.burnSeconds)}`],
     ['Dùng dùi cui / đẩy khiên', `${st.batons} / ${st.pushes}`],
     ['Mức vũ lực trung bình / đỉnh', `${Math.round(result.avgForce)}% / ${Math.round(st.peakForce)}%`],
     ['Stability cuối', `${Math.round(result.stability)}%`],
@@ -382,6 +434,9 @@ export function HUD() {
         case 'KeyX':
           st.applyOrder('DEESCALATE');
           break;
+        case 'KeyV':
+          st.dodge();
+          break;
         case 'KeyM':
           st.applyOrder('MOVE');
           break;
@@ -417,6 +472,7 @@ export function HUD() {
             <SquadPanel />
             <Help />
           </div>
+          <WaveBanner />
           {paused && <div className="paused">TẠM DỪNG - nhấn Space để tiếp tục</div>}
         </>
       )}

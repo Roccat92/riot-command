@@ -1,8 +1,10 @@
 // GameState: kho zustand cho trang thai UI (pha game, lua chon, anh chup HUD da gioi han tan suat, ket qua).
 // Khong bao gio chua du lieu theo tung don vi moi khung hinh: HUD chi nhan anh chup ~4 lan/giay.
 import { create } from 'zustand';
+import { sfx } from '../ui/sfx';
 import { orderMove, setFormation, setOrder } from '../sim/SquadController';
 import { simLoop } from '../sim/SimulationLoop';
+import { triggerDodge } from '../sim/ProjectileSystem';
 import {
   CIVILIAN,
   RIOTER,
@@ -32,6 +34,7 @@ export interface HudSquad {
   morale: number;
   cohesion: number;
   alert: string;
+  dodge: boolean; // dang o tu the san sang ne
 }
 export interface Hud {
   time: number;
@@ -44,6 +47,16 @@ export interface Hud {
   safety: number;
   force: number;
   hostile: number;
+  thrown: number;
+  molotovs: number;
+  blocked: number;
+  dodged: number;
+  projHits: number;
+  fires: number; // vung lua dang chay
+  fireTotal: number; // tong vung lua da xuat hien
+  pending: number; // tiep vien chua den
+  nextWave: number; // giay den dot tiep vien ke tiep (-1 neu het)
+  waveAlert: string | null;
   squads: HudSquad[];
 }
 
@@ -58,6 +71,16 @@ export const EMPTY_HUD: Hud = {
   safety: 100,
   force: 0,
   hostile: 0,
+  thrown: 0,
+  molotovs: 0,
+  blocked: 0,
+  dodged: 0,
+  projHits: 0,
+  fires: 0,
+  fireTotal: 0,
+  pending: 0,
+  nextWave: -1,
+  waveAlert: null,
   squads: [],
 };
 
@@ -109,9 +132,21 @@ export function makeSnapshot(w: World): Hud {
       morale: ms / k,
       cohesion: cs / k,
       alert: s.alert,
+      dodge: s.alertT > 0,
     };
   });
   const m = w.metrics;
+  let pending = 0;
+  let nextWave = -1;
+  for (const u of w.units) {
+    if (!u.pending) continue;
+    pending++;
+    const left = u.spawnAt - w.time;
+    if (nextWave < 0 || left < nextWave) nextWave = left;
+  }
+  let fires = 0;
+  for (const f of w.fires) if (f.active) fires++;
+  const st = m.stats;
   return {
     time: w.time,
     limit: w.timeLimit,
@@ -123,6 +158,16 @@ export function makeSnapshot(w: World): Hud {
     safety: m.safety,
     force: m.force,
     hostile: m.hostile,
+    thrown: st.thrown,
+    molotovs: st.molotovs,
+    blocked: st.blocked,
+    dodged: st.dodged,
+    projHits: st.projHits,
+    fires,
+    fireTotal: st.fireZones,
+    pending,
+    nextWave: Math.max(0, nextWave),
+    waveAlert: w.alert && w.time - w.alert.t < 9 ? w.alert.text : null,
     squads,
   };
 }
@@ -143,6 +188,9 @@ interface GameStore {
   applyFormation: (type: FormationType) => void;
   applyOrder: (order: Order) => void;
   moveTo: (x: number, z: number) => void;
+  dodge: () => void;
+  sfxOn: boolean;
+  toggleSfx: () => void;
   publish: () => void;
   finish: () => void;
 }
@@ -202,6 +250,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const sel = get().selection.map((id) => w.squads[id]).filter(Boolean);
     orderMove(w, sel, x, z);
     get().publish();
+  },
+  dodge: () => {
+    const w = simLoop.world;
+    for (const id of get().selection) if (w.squads[id]) triggerDodge(w, w.squads[id]);
+    get().publish();
+  },
+  sfxOn: false,
+  toggleSfx: () => {
+    const on = !get().sfxOn;
+    sfx.enabled = on;
+    set({ sfxOn: on });
   },
   publish: () => set({ hud: makeSnapshot(simLoop.world) }),
   finish: () => set({ phase: 'ended', result: simLoop.world.result }),

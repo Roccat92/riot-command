@@ -63,6 +63,21 @@ export function Minimap() {
           ctx.fillRect(px(o.x - o.hw), pz(o.z - o.hd), o.hw * 2 * sc, o.hd * 2 * sc);
         }
       }
+      for (const f of w.fires) {
+        if (!f.active) continue;
+        ctx.fillStyle = 'rgba(255,120,20,0.75)';
+        ctx.beginPath();
+        ctx.arc(px(f.x), pz(f.z), Math.max(2.5, f.r * sc), 0, 7);
+        ctx.fill();
+      }
+      for (const p of w.projectiles) {
+        if (!p.active) continue;
+        ctx.strokeStyle = p.kind === 2 ? '#ff9a2a' : '#ffe27a';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(px(p.tx), pz(p.tz), 2.8, 0, 7);
+        ctx.stroke();
+      }
       const sel = new Set(useGameStore.getState().selection);
       for (const u of w.units) {
         if (!isAlive(u)) {

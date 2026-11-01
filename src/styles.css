@@ -94,3 +94,11 @@ kbd { background: #1a2638; border: 1px solid #33465f; border-radius: 4px; paddin
 .portraits.small .portrait { width: 28px; height: 32px; }
 .portraits.small .portrait svg { width: 22px; height: 22px; }
 .portraits.small { gap: 4px; }
+
+.stat.proj { gap: 6px; }
+.stat.proj .sub { color: var(--dim); font-size: 11px; margin-left: 2px; }
+.stat.proj b.warn { color: #ff9a3a; }
+.stat.wave b { color: #ffb347; }
+.chip.proj-ico { font-size: 14px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; }
+.order.dodge.on { background: #0e8a7a; border-color: #40e0c8; }
+.wave-banner { position: absolute; top: 74px; left: 50%; transform: translateX(-50%); background: rgba(160, 60, 0, 0.92); color: #fff; border: 1px solid #ffb347; padding: 8px 18px; border-radius: 10px; font-weight: 700; letter-spacing: 0.3px; pointer-events: none; z-index: 5; box-shadow: 0 0 22px rgba(255, 140, 40, 0.5); }
